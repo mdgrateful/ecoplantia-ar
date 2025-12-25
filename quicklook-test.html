@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quick Look AR Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1B5E20, #4CAF50);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: white;
+      font-size: 24px;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    
+    p {
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 30px;
+      max-width: 300px;
+    }
+    
+    /* This is Apple's native Quick Look link method */
+    .ar-link {
+      display: block;
+      background: white;
+      border-radius: 20px;
+      padding: 20px;
+      text-decoration: none;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .ar-link img {
+      width: 200px;
+      height: 200px;
+      object-fit: contain;
+      margin-bottom: 15px;
+    }
+    
+    .ar-link span {
+      display: block;
+      background: #4CAF50;
+      color: white;
+      padding: 14px 30px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .info {
+      color: rgba(255,255,255,0.8);
+      font-size: 12px;
+      text-align: center;
+      max-width: 280px;
+    }
+    
+    .back-btn {
+      margin-top: 30px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.5);
+      padding: 12px 30px;
+      border-radius: 25px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Quick Look Test</h1>
+  <p>Tap the image below to open Apple's AR Quick Look</p>
+  
+  <!-- 
+    This is Apple's recommended way to trigger Quick Look.
+    The rel="ar" attribute tells Safari to open in AR mode.
+    Using Apple's own demo USDZ file.
+  -->
+  <a 
+    href="https://developer.apple.com/augmented-reality/quick-look/models/vintagerobot2k/robot_walk_idle.usdz" 
+    rel="ar"
+    class="ar-link"
+  >
+    <img src="https://developer.apple.com/augmented-reality/quick-look/models/vintagerobot2k/vintagerobot2k_2x.jpg" alt="Robot">
+    <span>👆 Tap to View in AR</span>
+  </a>
+  
+  <p class="info">
+    If this works, you'll see a robot that you can place in your room and walk around!
+  </p>
+  
+  <button class="back-btn" onclick="window.close()">← Back</button>
+</body>
+</html>
