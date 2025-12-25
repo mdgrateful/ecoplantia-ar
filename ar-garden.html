@@ -7,46 +7,170 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; overflow: hidden; touch-action: none; }
+    
     #cameraView { position: fixed; inset: 0; background: #111; }
     #cameraVideo { width: 100%; height: 100%; object-fit: cover; }
-    #plantsOverlay { position: fixed; inset: 0; pointer-events: none; }
-    .arPlant { position: absolute; pointer-events: auto; touch-action: none; cursor: grab; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); transition: transform 0.1s; }
-    .arPlant.dragging { cursor: grabbing; transform: scale(1.1); z-index: 1000; }
+    
+    /* Garden container - can be moved/locked */
+    #gardenContainer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      perspective: 1000px;
+      transform-style: preserve-3d;
+    }
+    
+    #plantsOverlay {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease-out;
+    }
+    
+    .arPlant {
+      position: absolute;
+      pointer-events: auto;
+      touch-action: none;
+      cursor: grab;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+      transition: transform 0.15s, width 0.15s, height 0.15s;
+      transform-origin: bottom center;
+    }
+    
+    .arPlant.dragging { cursor: grabbing; transform: scale(1.05); z-index: 1000 !important; }
     .arPlant.selected { outline: 3px solid #4CAF50; outline-offset: 3px; border-radius: 8px; }
+    .arPlant.all-selected { outline: 2px solid #2196F3; outline-offset: 2px; }
     .arPlant img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-    #topBar { position: fixed; top: 0; left: 0; right: 0; padding: 12px 15px; padding-top: max(12px, env(safe-area-inset-top)); background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    
+    /* Locked mode - plants billboard toward camera */
+    #plantsOverlay.locked .arPlant {
+      transition: transform 0.05s ease-out;
+    }
+    
+    #topBar {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 12px 15px; padding-top: max(12px, env(safe-area-inset-top));
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      display: flex; justify-content: space-between; align-items: center; z-index: 10;
+    }
     #topBar h3 { color: #fff; font-size: 16px; font-weight: 600; margin: 0; }
-    .topBtn { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; }
-    #bottomControls { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 15px; padding-bottom: max(12px, env(safe-area-inset-bottom)); background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); z-index: 10; }
-    #plantTray { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+    .topBtn {
+      background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+      border: none; color: #fff; width: 36px; height: 36px;
+      border-radius: 50%; font-size: 18px; cursor: pointer;
+    }
+    .topBtn.active { background: #4CAF50; }
+    
+    #bottomControls {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 12px 15px; padding-bottom: max(12px, env(safe-area-inset-bottom));
+      background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+      z-index: 10;
+    }
+    
+    #plantTray {
+      display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; margin-bottom: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
     #plantTray::-webkit-scrollbar { display: none; }
-    .trayPlant { flex-shrink: 0; width: 55px; height: 65px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+    
+    .trayPlant {
+      flex-shrink: 0; width: 50px; height: 60px;
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
+      border-radius: 10px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; cursor: pointer;
+      border: 2px solid transparent; transition: all 0.2s;
+    }
     .trayPlant.selected { border-color: #4CAF50; background: rgba(76,175,80,0.3); }
-    .trayPlant img { width: 35px; height: 35px; object-fit: contain; }
-    .trayPlant span { color: #fff; font-size: 8px; margin-top: 3px; }
+    .trayPlant img { width: 32px; height: 32px; object-fit: contain; }
+    .trayPlant span { color: #fff; font-size: 7px; margin-top: 2px; }
+    
+    /* Mode buttons row */
+    #modeRow {
+      display: flex; gap: 8px; margin-bottom: 10px; justify-content: center;
+    }
+    .modeBtn {
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
+      border: 2px solid transparent; color: #fff; padding: 8px 14px;
+      border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .modeBtn.active { border-color: #4CAF50; background: rgba(76,175,80,0.3); }
+    .modeBtn.locked { border-color: #FF9800; background: rgba(255,152,0,0.3); }
+    
     #actionBtns { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
-    .actionBtn { background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: none; color: #fff; padding: 10px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .actionBtn {
+      background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+      border: none; color: #fff; padding: 10px 16px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+    }
     .actionBtn.primary { background: #4CAF50; }
     .actionBtn.back { background: rgba(33,150,243,0.8); }
-    #sizeControls { position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%); display: none; gap: 8px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); padding: 6px 12px; border-radius: 20px; z-index: 10; }
+    
+    /* Size controls for selection */
+    #sizeControls {
+      position: fixed; bottom: 200px; left: 50%; transform: translateX(-50%);
+      display: none; gap: 8px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+      padding: 8px 14px; border-radius: 25px; z-index: 10; align-items: center;
+    }
     #sizeControls.vis { display: flex; }
-    .sizeBtn { background: rgba(255,255,255,0.2); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; }
+    .sizeBtn {
+      background: rgba(255,255,255,0.2); border: none; color: #fff;
+      width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer;
+    }
+    .sizeBtn:active { background: rgba(255,255,255,0.4); }
     .deleteBtn { background: rgba(244,67,54,0.8) !important; }
-    #sizeLabel { color: #fff; font-size: 12px; min-width: 40px; text-align: center; line-height: 32px; }
-    #hint { position: fixed; top: 70px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: #fff; padding: 8px 16px; border-radius: 16px; font-size: 12px; z-index: 10; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    #sizeLabel { color: #fff; font-size: 13px; min-width: 50px; text-align: center; }
+    
+    #hint {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color: #fff; padding: 10px 18px;
+      border-radius: 20px; font-size: 13px; z-index: 10;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+      text-align: center; max-width: 90%;
+    }
     #hint.show { opacity: 1; }
-    #permission { position: fixed; inset: 0; background: linear-gradient(135deg, #1B5E20, #4CAF50); display: flex; align-items: center; justify-content: center; z-index: 20; }
+    
+    #permission {
+      position: fixed; inset: 0; background: linear-gradient(135deg, #1B5E20, #4CAF50);
+      display: flex; align-items: center; justify-content: center; z-index: 20;
+    }
     #permission.hide { display: none; }
     .permContent { text-align: center; padding: 30px; max-width: 320px; }
     .permIcon { font-size: 50px; margin-bottom: 15px; }
     .permContent h3 { color: #fff; font-size: 22px; margin: 0 0 10px; }
     .permContent p { color: rgba(255,255,255,0.9); font-size: 13px; margin: 0 0 20px; line-height: 1.5; }
     .plantCount { background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 10px; margin-bottom: 20px; color: #fff; font-size: 14px; }
-    .startBtn { background: #fff; color: #1B5E20; border: none; padding: 14px 35px; border-radius: 25px; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 12px; display: block; width: 100%; }
-    .closePermBtn { background: transparent; color: rgba(255,255,255,0.8); border: 2px solid rgba(255,255,255,0.5); padding: 10px 25px; border-radius: 20px; font-size: 13px; cursor: pointer; display: block; width: 100%; }
+    .startBtn {
+      background: #fff; color: #1B5E20; border: none; padding: 14px 35px;
+      border-radius: 25px; font-size: 15px; font-weight: 700; cursor: pointer;
+      margin-bottom: 12px; display: block; width: 100%;
+    }
+    .closePermBtn {
+      background: transparent; color: rgba(255,255,255,0.8);
+      border: 2px solid rgba(255,255,255,0.5); padding: 10px 25px;
+      border-radius: 20px; font-size: 13px; cursor: pointer; display: block; width: 100%;
+    }
     #errorMsg { color: #ffcdd2; font-size: 12px; margin-top: 15px; }
     #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 100; transition: opacity 0.1s; }
     #flash.flash { opacity: 1; }
+    
+    /* Lock indicator */
+    #lockIndicator {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 80px; height: 80px; border: 4px solid #FF9800;
+      border-radius: 50%; display: none; align-items: center; justify-content: center;
+      font-size: 40px; background: rgba(255,152,0,0.2); z-index: 5;
+      animation: pulse 1s infinite;
+    }
+    #lockIndicator.show { display: flex; }
+    #lockIndicator.locked { border-color: #4CAF50; background: rgba(76,175,80,0.2); animation: none; }
+    
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
+    }
   </style>
 </head>
 <body>
@@ -55,34 +179,50 @@
       <div class="permIcon">📱</div>
       <h3>AR Garden Preview</h3>
       <p>See how your plants will look in your actual yard!</p>
-      <div class="plantCount" id="plantCount">Select plants below and place them in your view</div>
+      <div class="plantCount" id="plantCount">Select plants and place them in your view</div>
       <button class="startBtn" id="startBtn">📷 Start Camera</button>
       <button class="closePermBtn" onclick="history.back()">← Back</button>
       <div id="errorMsg"></div>
     </div>
   </div>
+  
   <div id="cameraView"><video id="cameraVideo" autoplay playsinline muted></video></div>
-  <div id="plantsOverlay"></div>
+  
+  <div id="gardenContainer">
+    <div id="plantsOverlay"></div>
+  </div>
+  
+  <div id="lockIndicator">📍</div>
+  
   <div id="sizeControls">
     <button class="sizeBtn" id="shrinkBtn">−</button>
     <span id="sizeLabel">100%</span>
     <button class="sizeBtn" id="growBtn">+</button>
     <button class="sizeBtn deleteBtn" id="deleteBtn">🗑</button>
   </div>
+  
   <div id="hint"></div>
+  
   <div id="topBar" style="display:none">
     <button class="topBtn" onclick="history.back()">←</button>
     <h3>🌿 AR Garden</h3>
     <button class="topBtn" id="flipBtn">🔄</button>
   </div>
+  
   <div id="bottomControls" style="display:none">
     <div id="plantTray"></div>
+    <div id="modeRow">
+      <button class="modeBtn active" id="singleModeBtn">🌱 Single</button>
+      <button class="modeBtn" id="allModeBtn">🌿 Select All</button>
+      <button class="modeBtn" id="lockModeBtn">📍 Lock</button>
+    </div>
     <div id="actionBtns">
       <button class="actionBtn back" onclick="history.back()">← Back</button>
       <button class="actionBtn" id="clearBtn">🗑</button>
       <button class="actionBtn primary" id="captureBtn">📸 Capture</button>
     </div>
   </div>
+  
   <div id="flash"></div>
   
   <script>
@@ -98,6 +238,7 @@
       { name: 'Butterfly Weed', acr: 'ASC', img: 'https://static.wixstatic.com/media/94bd1f_00213b64feff49f591a7fb83fd720fbb~mv2.png' }
     ];
     
+    // Parse design plants from URL hash
     let DESIGN_PLANTS = [];
     try {
       const hash = window.location.hash.slice(1);
@@ -105,128 +246,449 @@
         DESIGN_PLANTS = JSON.parse(decodeURIComponent(hash));
         document.getElementById('plantCount').textContent = DESIGN_PLANTS.length + ' plants from your design';
       }
-    } catch(e) {}
+    } catch(e) { console.log('No design plants'); }
     
     const $ = id => document.getElementById(id);
-    let stream = null, facingMode = 'environment';
-    let selectedTray = null, selectedPlant = null, placedPlants = [];
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
     
+    // State
+    let stream = null;
+    let facingMode = 'environment';
+    let selectedTray = null;
+    let selectedPlant = null;
+    let placedPlants = [];
+    let mode = 'single'; // 'single', 'all', 'lock'
+    let isLocked = false;
+    let gardenRotation = { alpha: 0, beta: 0, gamma: 0 };
+    let lockRotation = null;
+    let globalScale = 1;
+    
+    // Build plant tray
     const tray = $('plantTray');
     PLANTS.forEach((p, i) => {
       const d = document.createElement('div');
       d.className = 'trayPlant';
-      d.innerHTML = '<img src="' + p.img + '"><span>' + p.acr + '</span>';
-      d.onclick = () => {
-        if (selectedPlant) { selectedPlant.classList.remove('selected'); selectedPlant = null; $('sizeControls').classList.remove('vis'); }
-        document.querySelectorAll('.trayPlant').forEach(t => t.classList.remove('selected'));
-        if (selectedTray === i) { selectedTray = null; } else { selectedTray = i; d.classList.add('selected'); showHint('Tap to place ' + p.name); }
-      };
+      d.innerHTML = `<img src="${p.img}"><span>${p.acr}</span>`;
+      d.onclick = () => selectTrayPlant(i, d);
       tray.appendChild(d);
     });
     
-    function showHint(msg) { $('hint').textContent = msg; $('hint').classList.add('show'); setTimeout(() => $('hint').classList.remove('show'), 2500); }
+    function selectTrayPlant(index, el) {
+      deselectAll();
+      document.querySelectorAll('.trayPlant').forEach(t => t.classList.remove('selected'));
+      if (selectedTray === index) {
+        selectedTray = null;
+      } else {
+        selectedTray = index;
+        el.classList.add('selected');
+        showHint('Tap anywhere to place ' + PLANTS[index].name);
+      }
+    }
     
+    function showHint(msg, duration = 2500) {
+      $('hint').textContent = msg;
+      $('hint').classList.add('show');
+      setTimeout(() => $('hint').classList.remove('show'), duration);
+    }
+    
+    // Start camera
     $('startBtn').onclick = startCamera;
     async function startCamera() {
       try {
         if (stream) stream.getTracks().forEach(t => t.stop());
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } } 
+        });
         $('cameraVideo').srcObject = stream;
         $('permission').classList.add('hide');
         $('topBar').style.display = 'flex';
         $('bottomControls').style.display = 'block';
+        
+        // Request device orientation permission (iOS 13+)
+        if (typeof DeviceOrientationEvent !== 'undefined' && 
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          try {
+            const response = await DeviceOrientationEvent.requestPermission();
+            if (response === 'granted') {
+              setupOrientationTracking();
+            }
+          } catch(e) { console.log('Orientation permission denied'); }
+        } else {
+          setupOrientationTracking();
+        }
+        
         setTimeout(placeDesignPlants, 500);
       } catch (e) {
+        console.error('Camera error:', e);
         $('errorMsg').textContent = 'Camera denied. Check browser settings.';
       }
     }
     
-    function placeDesignPlants() {
-      if (!DESIGN_PLANTS.length) { showHint('Select a plant and tap to place'); return; }
-      const w = innerWidth, h = innerHeight;
-      DESIGN_PLANTS.forEach(dp => {
-        const plant = PLANTS[dp.idx]; if (!plant) return;
-        const size = 70, x = w*0.1 + dp.relX*w*0.8, y = h*0.35 + dp.relY*h*0.35;
-        const el = document.createElement('div');
-        el.className = 'arPlant';
-        el.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+(x-size/2)+'px;top:'+(y-size/2)+'px';
-        el.dataset.scale = 1;
-        el.innerHTML = '<img src="' + plant.img + '">';
-        $('plantsOverlay').appendChild(el);
-        makeDrag(el);
-        placedPlants.push(el);
-      });
-      showHint(DESIGN_PLANTS.length + ' plants placed!');
+    // Device orientation tracking for lock mode
+    function setupOrientationTracking() {
+      window.addEventListener('deviceorientation', (e) => {
+        if (!isLocked || !lockRotation) return;
+        
+        // Calculate rotation difference from lock point
+        const deltaAlpha = e.alpha - lockRotation.alpha;
+        const deltaBeta = e.beta - lockRotation.beta;
+        const deltaGamma = e.gamma - lockRotation.gamma;
+        
+        // Apply rotation to garden (simulated 3D effect)
+        const overlay = $('plantsOverlay');
+        overlay.style.transform = `
+          rotateY(${deltaAlpha * 0.3}deg)
+          rotateX(${-deltaBeta * 0.2}deg)
+        `;
+        
+        // Billboard effect - rotate each plant to face camera
+        placedPlants.forEach(el => {
+          // Subtle rotation toward viewer
+          const plantRotY = clamp(-deltaAlpha * 0.15, -30, 30);
+          el.style.transform = `rotateY(${plantRotY}deg)`;
+        });
+      }, true);
     }
     
-    $('flipBtn').onclick = async () => { facingMode = facingMode === 'environment' ? 'user' : 'environment'; await startCamera(); };
+    // Place plants from design (mockup-style positioning)
+    function placeDesignPlants() {
+      if (!DESIGN_PLANTS.length) {
+        showHint('Select a plant and tap to place', 3000);
+        return;
+      }
+      
+      const w = innerWidth, h = innerHeight;
+      
+      // Mockup-style positioning: ground level with mound
+      const groundLevel = h * 0.75;
+      const moundHeight = h * 0.12;
+      const gardenLeft = w * 0.1;
+      const gardenWidth = w * 0.8;
+      
+      // Sort by Y position (back to front)
+      const sorted = [...DESIGN_PLANTS].sort((a, b) => a.relY - b.relY);
+      
+      sorted.forEach((dp, index) => {
+        const plant = PLANTS[dp.idx];
+        if (!plant) return;
+        
+        // Calculate position like mockup
+        const rY = clamp(dp.relY, 0, 1);
+        const yBase = groundLevel - moundHeight + (rY * moundHeight);
+        
+        // Size based on depth (further back = smaller)
+        const baseSize = 55 + rY * 20;
+        const size = baseSize;
+        
+        const x = gardenLeft + (dp.relX * gardenWidth);
+        const y = yBase - size;
+        
+        createPlant(plant, x - size/2, y, size, Math.floor(rY * 100) + 10);
+      });
+      
+      showHint(DESIGN_PLANTS.length + ' plants placed! Drag to adjust', 3000);
+    }
     
+    function createPlant(plantData, x, y, size, zIndex) {
+      const el = document.createElement('div');
+      el.className = 'arPlant';
+      el.style.cssText = `width:${size}px; height:${size}px; left:${x}px; top:${y}px; z-index:${zIndex || 10}`;
+      el.dataset.scale = 1;
+      el.dataset.baseSize = size;
+      el.innerHTML = `<img src="${plantData.img}">`;
+      $('plantsOverlay').appendChild(el);
+      makeDraggable(el);
+      placedPlants.push(el);
+      return el;
+    }
+    
+    // Flip camera
+    $('flipBtn').onclick = async () => {
+      facingMode = facingMode === 'environment' ? 'user' : 'environment';
+      await startCamera();
+      showHint(facingMode === 'environment' ? 'Back camera' : 'Front camera');
+    };
+    
+    // Tap to place or deselect
     $('plantsOverlay').onclick = (e) => {
-      if (e.target !== $('plantsOverlay')) return;
+      if (e.target !== $('plantsOverlay') && e.target !== $('gardenContainer')) return;
+      
       if (selectedTray !== null) {
-        const p = PLANTS[selectedTray], size = 70;
-        const el = document.createElement('div');
-        el.className = 'arPlant';
-        el.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+(e.clientX-size/2)+'px;top:'+(e.clientY-size/2)+'px';
-        el.dataset.scale = 1;
-        el.innerHTML = '<img src="' + p.img + '">';
-        $('plantsOverlay').appendChild(el);
-        makeDrag(el);
-        placedPlants.push(el);
+        // Place new plant
+        const p = PLANTS[selectedTray];
+        const size = 70;
+        createPlant(p, e.clientX - size/2, e.clientY - size, size, 50);
         showHint(p.name + ' placed!');
-      } else if (selectedPlant) {
-        selectedPlant.classList.remove('selected'); selectedPlant = null; $('sizeControls').classList.remove('vis');
+      } else if (selectedPlant && mode === 'single') {
+        deselectAll();
       }
     };
     
-    function makeDrag(el) {
-      let sx, sy, ox, oy, drag = false;
-      el.onpointerdown = e => { e.preventDefault(); drag = true; el.classList.add('dragging'); el.setPointerCapture(e.pointerId); sx = e.clientX; sy = e.clientY; ox = parseFloat(el.style.left); oy = parseFloat(el.style.top); };
-      el.onpointermove = e => { if (!drag) return; el.style.left = (ox + e.clientX - sx) + 'px'; el.style.top = (oy + e.clientY - sy) + 'px'; };
-      el.onpointerup = e => { drag = false; el.classList.remove('dragging'); el.releasePointerCapture(e.pointerId); };
-      el.onclick = e => { e.stopPropagation(); selectPlant(el); };
+    // Also handle tap on container
+    $('gardenContainer').onclick = (e) => {
+      if (e.target === $('gardenContainer') || e.target === $('plantsOverlay')) {
+        if (selectedTray !== null) {
+          const p = PLANTS[selectedTray];
+          const size = 70;
+          createPlant(p, e.clientX - size/2, e.clientY - size, size, 50);
+          showHint(p.name + ' placed!');
+        }
+      }
+    };
+    
+    function makeDraggable(el) {
+      let sx, sy, ox, oy, drag = false, moved = false;
+      
+      el.onpointerdown = e => {
+        if (isLocked) return;
+        e.preventDefault();
+        e.stopPropagation();
+        drag = true;
+        moved = false;
+        el.classList.add('dragging');
+        el.setPointerCapture(e.pointerId);
+        sx = e.clientX; sy = e.clientY;
+        ox = parseFloat(el.style.left); oy = parseFloat(el.style.top);
+        
+        // Store all plants' positions for 'all' mode
+        if (mode === 'all') {
+          placedPlants.forEach(p => {
+            p.dataset.startX = parseFloat(p.style.left);
+            p.dataset.startY = parseFloat(p.style.top);
+          });
+        }
+      };
+      
+      el.onpointermove = e => {
+        if (!drag) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+        
+        if (mode === 'all') {
+          // Move all plants together
+          placedPlants.forEach(p => {
+            const startX = parseFloat(p.dataset.startX) || 0;
+            const startY = parseFloat(p.dataset.startY) || 0;
+            p.style.left = (startX + dx) + 'px';
+            p.style.top = (startY + dy) + 'px';
+          });
+        } else {
+          el.style.left = (ox + dx) + 'px';
+          el.style.top = (oy + dy) + 'px';
+        }
+      };
+      
+      el.onpointerup = e => {
+        drag = false;
+        el.classList.remove('dragging');
+        el.releasePointerCapture(e.pointerId);
+        
+        if (!moved && mode !== 'lock') {
+          selectPlant(el);
+        }
+      };
     }
     
     function selectPlant(el) {
-      selectedTray = null; document.querySelectorAll('.trayPlant').forEach(t => t.classList.remove('selected'));
+      selectedTray = null;
+      document.querySelectorAll('.trayPlant').forEach(t => t.classList.remove('selected'));
+      
+      if (mode === 'all') {
+        // In all mode, selection affects all
+        placedPlants.forEach(p => p.classList.add('all-selected'));
+        selectedPlant = el;
+        updateSizeLabel();
+        $('sizeControls').classList.add('vis');
+      } else {
+        // Single mode
+        if (selectedPlant) selectedPlant.classList.remove('selected');
+        selectedPlant = el;
+        el.classList.add('selected');
+        updateSizeLabel();
+        $('sizeControls').classList.add('vis');
+      }
+    }
+    
+    function deselectAll() {
       if (selectedPlant) selectedPlant.classList.remove('selected');
-      selectedPlant = el; el.classList.add('selected');
-      $('sizeLabel').textContent = Math.round((parseFloat(el.dataset.scale) || 1) * 100) + '%';
-      $('sizeControls').classList.add('vis');
-    }
-    
-    function applyScale(el, s) {
-      el.dataset.scale = s; const ns = 70 * s;
-      const cx = parseFloat(el.style.left) + parseFloat(el.style.width)/2;
-      const cy = parseFloat(el.style.top) + parseFloat(el.style.height)/2;
-      el.style.width = ns + 'px'; el.style.height = ns + 'px';
-      el.style.left = (cx - ns/2) + 'px'; el.style.top = (cy - ns/2) + 'px';
-      $('sizeLabel').textContent = Math.round(s * 100) + '%';
-    }
-    
-    $('growBtn').onclick = () => { if (selectedPlant) applyScale(selectedPlant, Math.min((parseFloat(selectedPlant.dataset.scale)||1)*1.2, 3)); };
-    $('shrinkBtn').onclick = () => { if (selectedPlant) applyScale(selectedPlant, Math.max((parseFloat(selectedPlant.dataset.scale)||1)*0.8, 0.3)); };
-    $('deleteBtn').onclick = () => { if (selectedPlant) { selectedPlant.remove(); placedPlants = placedPlants.filter(p => p !== selectedPlant); selectedPlant = null; $('sizeControls').classList.remove('vis'); showHint('Removed'); } };
-    $('clearBtn').onclick = () => { placedPlants.forEach(p => p.remove()); placedPlants = []; showHint('Cleared'); };
-    
-    $('captureBtn').onclick = async () => {
-      if (selectedPlant) { selectedPlant.classList.remove('selected'); selectedPlant = null; }
+      placedPlants.forEach(p => p.classList.remove('all-selected'));
+      selectedPlant = null;
       $('sizeControls').classList.remove('vis');
-      $('flash').classList.add('flash'); setTimeout(() => $('flash').classList.remove('flash'), 150);
+    }
+    
+    function updateSizeLabel() {
+      if (mode === 'all') {
+        $('sizeLabel').textContent = Math.round(globalScale * 100) + '%';
+      } else if (selectedPlant) {
+        $('sizeLabel').textContent = Math.round((parseFloat(selectedPlant.dataset.scale) || 1) * 100) + '%';
+      }
+    }
+    
+    // Mode buttons
+    $('singleModeBtn').onclick = () => setMode('single');
+    $('allModeBtn').onclick = () => setMode('all');
+    $('lockModeBtn').onclick = () => setMode('lock');
+    
+    function setMode(newMode) {
+      mode = newMode;
+      deselectAll();
+      
+      // Update button states
+      document.querySelectorAll('.modeBtn').forEach(b => b.classList.remove('active', 'locked'));
+      
+      if (newMode === 'single') {
+        $('singleModeBtn').classList.add('active');
+        isLocked = false;
+        lockRotation = null;
+        $('plantsOverlay').classList.remove('locked');
+        $('plantsOverlay').style.transform = '';
+        placedPlants.forEach(el => el.style.transform = '');
+        $('lockIndicator').classList.remove('show', 'locked');
+        showHint('Tap a plant to select and resize');
+      } else if (newMode === 'all') {
+        $('allModeBtn').classList.add('active');
+        isLocked = false;
+        placedPlants.forEach(p => p.classList.add('all-selected'));
+        showHint('Drag any plant to move all. Use +/- to resize all.');
+        // Show size controls for all
+        if (placedPlants.length > 0) {
+          selectedPlant = placedPlants[0];
+          $('sizeControls').classList.add('vis');
+          updateSizeLabel();
+        }
+      } else if (newMode === 'lock') {
+        $('lockModeBtn').classList.add('active');
+        $('lockIndicator').classList.add('show');
+        showHint('Tap screen to lock garden position. Walk around to see 3D effect!', 4000);
+        
+        // Wait for tap to lock
+        const lockHandler = (e) => {
+          if (e.target.closest('#bottomControls') || e.target.closest('#topBar')) return;
+          
+          isLocked = true;
+          lockRotation = { ...gardenRotation };
+          $('plantsOverlay').classList.add('locked');
+          $('lockModeBtn').classList.add('locked');
+          $('lockIndicator').textContent = '🔒';
+          $('lockIndicator').classList.add('locked');
+          setTimeout(() => $('lockIndicator').classList.remove('show'), 1500);
+          showHint('Garden locked! Move around to see 3D effect');
+          
+          document.removeEventListener('click', lockHandler);
+        };
+        document.addEventListener('click', lockHandler);
+      }
+    }
+    
+    // Size controls
+    $('growBtn').onclick = () => {
+      if (mode === 'all') {
+        globalScale = Math.min(globalScale * 1.15, 3);
+        placedPlants.forEach(el => applyScale(el, (parseFloat(el.dataset.scale) || 1) * 1.15));
+      } else if (selectedPlant) {
+        applyScale(selectedPlant, Math.min((parseFloat(selectedPlant.dataset.scale) || 1) * 1.15, 3));
+      }
+      updateSizeLabel();
+    };
+    
+    $('shrinkBtn').onclick = () => {
+      if (mode === 'all') {
+        globalScale = Math.max(globalScale * 0.85, 0.3);
+        placedPlants.forEach(el => applyScale(el, (parseFloat(el.dataset.scale) || 1) * 0.85));
+      } else if (selectedPlant) {
+        applyScale(selectedPlant, Math.max((parseFloat(selectedPlant.dataset.scale) || 1) * 0.85, 0.3));
+      }
+      updateSizeLabel();
+    };
+    
+    function applyScale(el, newScale) {
+      const baseSize = parseFloat(el.dataset.baseSize) || 70;
+      const newSize = baseSize * newScale;
+      
+      // Keep bottom-center anchored
+      const oldSize = parseFloat(el.style.width);
+      const oldLeft = parseFloat(el.style.left);
+      const oldBottom = parseFloat(el.style.top) + oldSize;
+      
+      el.dataset.scale = newScale;
+      el.style.width = newSize + 'px';
+      el.style.height = newSize + 'px';
+      el.style.left = (oldLeft + (oldSize - newSize) / 2) + 'px';
+      el.style.top = (oldBottom - newSize) + 'px';
+    }
+    
+    $('deleteBtn').onclick = () => {
+      if (mode === 'all') {
+        placedPlants.forEach(p => p.remove());
+        placedPlants = [];
+        deselectAll();
+        showHint('All plants removed');
+      } else if (selectedPlant) {
+        selectedPlant.remove();
+        placedPlants = placedPlants.filter(p => p !== selectedPlant);
+        deselectAll();
+        showHint('Plant removed');
+      }
+    };
+    
+    $('clearBtn').onclick = () => {
+      placedPlants.forEach(p => p.remove());
+      placedPlants = [];
+      deselectAll();
+      globalScale = 1;
+      showHint('All plants cleared');
+    };
+    
+    // Capture
+    $('captureBtn').onclick = async () => {
+      deselectAll();
+      $('flash').classList.add('flash');
+      setTimeout(() => $('flash').classList.remove('flash'), 150);
+      
       try {
-        const v = $('cameraVideo'), c = document.createElement('canvas');
-        c.width = v.videoWidth || 1920; c.height = v.videoHeight || 1080;
+        const v = $('cameraVideo');
+        const c = document.createElement('canvas');
+        c.width = v.videoWidth || 1920;
+        c.height = v.videoHeight || 1080;
         const ctx = c.getContext('2d');
         ctx.drawImage(v, 0, 0, c.width, c.height);
+        
         const sx = c.width / innerWidth, sy = c.height / innerHeight;
-        for (const p of placedPlants) {
+        
+        // Sort plants by z-index for proper layering
+        const sortedPlants = [...placedPlants].sort((a, b) => 
+          (parseInt(a.style.zIndex) || 0) - (parseInt(b.style.zIndex) || 0)
+        );
+        
+        for (const p of sortedPlants) {
           const r = p.getBoundingClientRect();
-          await new Promise(res => { const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => { ctx.drawImage(i, r.left*sx, r.top*sy, r.width*sx, r.height*sy); res(); }; i.onerror = res; i.src = p.querySelector('img').src; });
+          await new Promise(res => {
+            const i = new Image();
+            i.crossOrigin = 'anonymous';
+            i.onload = () => {
+              ctx.drawImage(i, r.left * sx, r.top * sy, r.width * sx, r.height * sy);
+              res();
+            };
+            i.onerror = res;
+            i.src = p.querySelector('img').src;
+          });
         }
-        const a = document.createElement('a'); a.download = 'ecoplantia-ar.png'; a.href = c.toDataURL('image/png'); a.click();
-        showHint('Saved!');
-      } catch (e) { showHint('Capture failed'); }
+        
+        const a = document.createElement('a');
+        a.download = 'ecoplantia-ar.png';
+        a.href = c.toDataURL('image/png');
+        a.click();
+        showHint('Photo saved!');
+      } catch (e) {
+        console.error('Capture error:', e);
+        showHint('Capture failed');
+      }
     };
+    
+    // Track device orientation for lock mode
+    window.addEventListener('deviceorientation', (e) => {
+      gardenRotation = { alpha: e.alpha || 0, beta: e.beta || 0, gamma: e.gamma || 0 };
+    }, true);
   </script>
 </body>
 </html>
