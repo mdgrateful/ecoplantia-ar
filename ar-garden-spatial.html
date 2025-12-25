@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ecoplantia AR Garden</title>
+  
+  <!-- Three.js for generating 3D scene -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <!-- GLTFExporter to create GLB -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+  
+  <!-- Google's model-viewer for AR -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1B5E20, #4CAF50);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: white;
+      font-size: 22px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .subtitle {
+      color: rgba(255,255,255,0.9);
+      font-size: 13px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .plant-count {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+    
+    .viewer-container {
+      width: 100%;
+      height: 350px;
+      background: #f5f5f5;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      margin-bottom: 20px;
+      position: relative;
+    }
+    
+    model-viewer {
+      width: 100%;
+      height: 100%;
+    }
+    
+    .loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      z-index: 10;
+    }
+    
+    .loading.hidden { display: none; }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #E8F5E9;
+      border-top-color: #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: #1B5E20;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .ar-button {
+      background: white;
+      color: #1B5E20;
+      border: none;
+      padding: 16px 30px;
+      border-radius: 30px;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      margin-bottom: 15px;
+    }
+    
+    .back-button {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.5);
+      padding: 12px 25px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+    
+    .info-box {
+      background: rgba(255,255,255,0.15);
+      padding: 15px;
+      border-radius: 12px;
+      color: white;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+    
+    .info-box h3 {
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    
+    .error {
+      background: rgba(244,67,54,0.2);
+      border: 1px solid rgba(244,67,54,0.5);
+      color: #ffcdd2;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 20px;
+      display: none;
+    }
+    
+    .error.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌿 Ecoplantia AR Garden</h1>
+    <p class="subtitle">Walk around your garden in real-world AR!</p>
+    
+    <div class="plant-count" id="plantCount">Loading plants...</div>
+    
+    <div class="error" id="error"></div>
+    
+    <div class="viewer-container">
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Building 3D garden...</div>
+      </div>
+      
+      <model-viewer
+        id="viewer"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        touch-action="pan-y"
+        shadow-intensity="1"
+        exposure="1"
+        environment-image="neutral"
+        camera-orbit="0deg 60deg 2m"
+        min-camera-orbit="auto auto 0.5m"
+        max-camera-orbit="auto auto 5m"
+        alt="Ecoplantia Garden"
+        style="display: none;"
+      >
+        <button slot="ar-button" class="ar-button">
+          📱 View in Your Space
+        </button>
+      </model-viewer>
+    </div>
+    
+    <button class="ar-button" id="mainArBtn" style="display:none;" onclick="document.querySelector('model-viewer').activateAR()">
+      📱 Open AR View
+    </button>
+    
+    <button class="back-button" onclick="window.close()">← Back to Designer</button>
+    
+    <div class="info-box">
+      <h3>📍 Spatial AR</h3>
+      <p>Tap "View in Your Space" to place your garden. You can walk around it and see it from all angles!</p>
+      <p style="margin-top:8px;"><strong>iOS:</strong> Uses Quick Look<br><strong>Android:</strong> Uses Scene Viewer</p>
+    </div>
+  </div>
+
+  <script>
+    // Plant data (same as designer)
+    const PLANTS = [
+      { name: 'Lanceleaf Coreopsis', acr: 'COR', img: 'https://static.wixstatic.com/media/94bd1f_48d31eb0d72044c5a798b2fd8960256a~mv2.png' },
+      { name: 'Blazingstar', acr: 'LIA', img: 'https://static.wixstatic.com/media/94bd1f_b53a5d6e4fb042c585a424bea9356928~mv2.png' },
+      { name: 'Purple Lovegrass', acr: 'ERA', img: 'https://static.wixstatic.com/media/94bd1f_935a7b7f12d14b1c9d71cb3122f0c1c4~mv2.png' },
+      { name: 'Black-Eyed Susan', acr: 'RUD', img: 'https://static.wixstatic.com/media/94bd1f_e5d5fdb0948b4808afaf856a5020ff13~mv2.png' },
+      { name: 'Purple Coneflower', acr: 'ECH', img: 'https://static.wixstatic.com/media/94bd1f_229936c40de64ae18bf2640a08e1b58a~mv2.png' },
+      { name: 'Rough Goldenrod', acr: 'SOL', img: 'https://static.wixstatic.com/media/94bd1f_78ed4dc45454484f818e215a6b795305~mv2.png' },
+      { name: 'Smooth Aster', acr: 'AST', img: 'https://static.wixstatic.com/media/94bd1f_6390f6e095084528ac9eb4e7e8917f2a~mv2.png' },
+      { name: 'Blunt Mountain-Mint', acr: 'MMT', img: 'https://static.wixstatic.com/media/94bd1f_c877a7e1e24143ce91317966460be77b~mv2.png' },
+      { name: 'Butterfly Weed', acr: 'ASC', img: 'https://static.wixstatic.com/media/94bd1f_00213b64feff49f591a7fb83fd720fbb~mv2.png' }
+    ];
+    
+    // Parse design plants from URL hash
+    let designPlants = [];
+    try {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        designPlants = JSON.parse(decodeURIComponent(hash));
+      }
+    } catch(e) {
+      console.log('No design plants in URL');
+    }
+    
+    // Update plant count
+    document.getElementById('plantCount').textContent = 
+      designPlants.length > 0 
+        ? `${designPlants.length} plants from your design`
+        : 'Demo mode - showing sample garden';
+    
+    // If no plants, create demo garden
+    if (designPlants.length === 0) {
+      designPlants = [
+        { idx: 0, relX: 0.2, relY: 0.3 },
+        { idx: 1, relX: 0.5, relY: 0.2 },
+        { idx: 3, relX: 0.8, relY: 0.4 },
+        { idx: 4, relX: 0.3, relY: 0.6 },
+        { idx: 5, relX: 0.6, relY: 0.7 },
+        { idx: 6, relX: 0.4, relY: 0.5 },
+      ];
+    }
+    
+    // Build 3D scene
+    async function buildGarden() {
+      const scene = new THREE.Scene();
+      
+      // Garden dimensions in meters
+      const gardenWidth = 1.5;  // 1.5m wide
+      const gardenDepth = 1.0;  // 1m deep
+      
+      // Create ground plane
+      const groundGeometry = new THREE.PlaneGeometry(gardenWidth * 1.2, gardenDepth * 1.2);
+      const groundMaterial = new THREE.MeshStandardMaterial({ 
+        color: 0x3d2817,  // Dark brown soil
+        roughness: 0.9,
+        metalness: 0.0
+      });
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2;  // Lay flat
+      ground.position.y = 0;
+      ground.receiveShadow = true;
+      scene.add(ground);
+      
+      // Load textures and create plant billboards
+      const textureLoader = new THREE.TextureLoader();
+      textureLoader.crossOrigin = 'anonymous';
+      
+      const loadTexture = (url) => {
+        return new Promise((resolve, reject) => {
+          textureLoader.load(
+            url,
+            (texture) => {
+              texture.encoding = THREE.sRGBEncoding;
+              resolve(texture);
+            },
+            undefined,
+            (err) => {
+              console.warn('Failed to load texture:', url);
+              resolve(null);
+            }
+          );
+        });
+      };
+      
+      // Sort plants back to front
+      const sortedPlants = [...designPlants].sort((a, b) => a.relY - b.relY);
+      
+      for (const dp of sortedPlants) {
+        const plantData = PLANTS[dp.idx];
+        if (!plantData) continue;
+        
+        try {
+          const texture = await loadTexture(plantData.img);
+          if (!texture) continue;
+          
+          // Calculate 3D position
+          const x = (dp.relX - 0.5) * gardenWidth;
+          const z = (dp.relY - 0.5) * gardenDepth;
+          
+          // Size based on depth (further = smaller for perspective)
+          const baseHeight = 0.25 + (dp.relY * 0.15);  // 25-40cm
+          const aspectRatio = texture.image ? texture.image.width / texture.image.height : 1;
+          const width = baseHeight * aspectRatio;
+          
+          // Create billboard plane
+          const geometry = new THREE.PlaneGeometry(width, baseHeight);
+          const material = new THREE.MeshStandardMaterial({
+            map: texture,
+            transparent: true,
+            alphaTest: 0.1,
+            side: THREE.DoubleSide,
+            roughness: 0.8,
+            metalness: 0.0
+          });
+          
+          const plant = new THREE.Mesh(geometry, material);
+          plant.position.set(x, baseHeight / 2, z);  // Anchor at bottom
+          plant.castShadow = true;
+          
+          scene.add(plant);
+        } catch (e) {
+          console.warn('Error creating plant:', e);
+        }
+      }
+      
+      // Add ambient light
+      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambient);
+      
+      // Add directional light for shadows
+      const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+      directional.position.set(5, 10, 5);
+      directional.castShadow = true;
+      scene.add(directional);
+      
+      return scene;
+    }
+    
+    // Export scene to GLB
+    function exportToGLB(scene) {
+      return new Promise((resolve, reject) => {
+        const exporter = new THREE.GLTFExporter();
+        exporter.parse(
+          scene,
+          (gltf) => {
+            const blob = new Blob([gltf], { type: 'model/gltf-binary' });
+            const url = URL.createObjectURL(blob);
+            resolve(url);
+          },
+          (error) => reject(error),
+          { binary: true }
+        );
+      });
+    }
+    
+    // Initialize
+    async function init() {
+      try {
+        console.log('Building 3D garden...');
+        const scene = await buildGarden();
+        
+        console.log('Exporting to GLB...');
+        const glbUrl = await exportToGLB(scene);
+        
+        console.log('Loading into model-viewer...');
+        const viewer = document.getElementById('viewer');
+        viewer.src = glbUrl;
+        
+        viewer.addEventListener('load', () => {
+          document.getElementById('loading').classList.add('hidden');
+          viewer.style.display = 'block';
+          document.getElementById('mainArBtn').style.display = 'flex';
+          console.log('Garden ready!');
+        });
+        
+        viewer.addEventListener('error', (e) => {
+          throw new Error('Failed to load model');
+        });
+        
+      } catch (e) {
+        console.error('Error:', e);
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').textContent = 'Error building garden: ' + e.message;
+        document.getElementById('error').classList.add('show');
+      }
+    }
+    
+    // Start
+    init();
+  </script>
+</body>
+</html>
