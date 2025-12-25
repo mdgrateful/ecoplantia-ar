@@ -11,21 +11,10 @@
     #cameraView { position: fixed; inset: 0; background: #111; }
     #cameraVideo { width: 100%; height: 100%; object-fit: cover; }
     
-    /* Garden container - can be moved/locked */
-    #gardenContainer {
+    #plantsOverlay {
       position: fixed;
       inset: 0;
       pointer-events: none;
-      perspective: 1000px;
-      transform-style: preserve-3d;
-    }
-    
-    #plantsOverlay {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      transform-style: preserve-3d;
-      transition: transform 0.1s ease-out;
     }
     
     .arPlant {
@@ -40,13 +29,9 @@
     
     .arPlant.dragging { cursor: grabbing; transform: scale(1.05); z-index: 1000 !important; }
     .arPlant.selected { outline: 3px solid #4CAF50; outline-offset: 3px; border-radius: 8px; }
-    .arPlant.all-selected { outline: 2px solid #2196F3; outline-offset: 2px; }
+    .arPlant.all-selected { outline: 2px solid #2196F3; outline-offset: 2px; border-radius: 6px; }
+    .arPlant.locked { pointer-events: none; }
     .arPlant img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
-    
-    /* Locked mode - plants billboard toward camera */
-    #plantsOverlay.locked .arPlant {
-      transition: transform 0.05s ease-out;
-    }
     
     #topBar {
       position: fixed; top: 0; left: 0; right: 0;
@@ -60,68 +45,50 @@
       border: none; color: #fff; width: 36px; height: 36px;
       border-radius: 50%; font-size: 18px; cursor: pointer;
     }
-    .topBtn.active { background: #4CAF50; }
     
     #bottomControls {
       position: fixed; bottom: 0; left: 0; right: 0;
-      padding: 12px 15px; padding-bottom: max(12px, env(safe-area-inset-bottom));
+      padding: 15px; padding-bottom: max(15px, env(safe-area-inset-bottom));
       background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
       z-index: 10;
     }
     
-    #plantTray {
-      display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; margin-bottom: 10px;
-      -webkit-overflow-scrolling: touch;
-    }
-    #plantTray::-webkit-scrollbar { display: none; }
-    
-    .trayPlant {
-      flex-shrink: 0; width: 50px; height: 60px;
-      background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
-      border-radius: 10px; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; cursor: pointer;
-      border: 2px solid transparent; transition: all 0.2s;
-    }
-    .trayPlant.selected { border-color: #4CAF50; background: rgba(76,175,80,0.3); }
-    .trayPlant img { width: 32px; height: 32px; object-fit: contain; }
-    .trayPlant span { color: #fff; font-size: 7px; margin-top: 2px; }
-    
     /* Mode buttons row */
     #modeRow {
-      display: flex; gap: 8px; margin-bottom: 10px; justify-content: center;
+      display: flex; gap: 8px; margin-bottom: 12px; justify-content: center;
     }
     .modeBtn {
       background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
-      border: 2px solid transparent; color: #fff; padding: 8px 14px;
-      border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer;
+      border: 2px solid transparent; color: #fff; padding: 10px 16px;
+      border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
       display: flex; align-items: center; gap: 5px;
     }
     .modeBtn.active { border-color: #4CAF50; background: rgba(76,175,80,0.3); }
-    .modeBtn.locked { border-color: #FF9800; background: rgba(255,152,0,0.3); }
+    .modeBtn.locked { border-color: #FF9800; background: rgba(255,152,0,0.3); color: #FFE082; }
     
     #actionBtns { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
     .actionBtn {
       background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
-      border: none; color: #fff; padding: 10px 16px; border-radius: 20px;
-      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: none; color: #fff; padding: 12px 18px; border-radius: 22px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
     }
     .actionBtn.primary { background: #4CAF50; }
     .actionBtn.back { background: rgba(33,150,243,0.8); }
     
-    /* Size controls for selection */
+    /* Size controls */
     #sizeControls {
-      position: fixed; bottom: 200px; left: 50%; transform: translateX(-50%);
-      display: none; gap: 8px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-      padding: 8px 14px; border-radius: 25px; z-index: 10; align-items: center;
+      position: fixed; bottom: 160px; left: 50%; transform: translateX(-50%);
+      display: none; gap: 10px; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+      padding: 10px 16px; border-radius: 25px; z-index: 10; align-items: center;
     }
     #sizeControls.vis { display: flex; }
     .sizeBtn {
       background: rgba(255,255,255,0.2); border: none; color: #fff;
-      width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer;
+      width: 40px; height: 40px; border-radius: 50%; font-size: 20px; cursor: pointer;
     }
     .sizeBtn:active { background: rgba(255,255,255,0.4); }
     .deleteBtn { background: rgba(244,67,54,0.8) !important; }
-    #sizeLabel { color: #fff; font-size: 13px; min-width: 50px; text-align: center; }
+    #sizeLabel { color: #fff; font-size: 14px; min-width: 55px; text-align: center; font-weight: 600; }
     
     #hint {
       position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
@@ -141,36 +108,20 @@
     .permIcon { font-size: 50px; margin-bottom: 15px; }
     .permContent h3 { color: #fff; font-size: 22px; margin: 0 0 10px; }
     .permContent p { color: rgba(255,255,255,0.9); font-size: 13px; margin: 0 0 20px; line-height: 1.5; }
-    .plantCount { background: rgba(255,255,255,0.2); padding: 10px 15px; border-radius: 10px; margin-bottom: 20px; color: #fff; font-size: 14px; }
+    .plantCount { background: rgba(255,255,255,0.2); padding: 12px 18px; border-radius: 12px; margin-bottom: 20px; color: #fff; font-size: 15px; font-weight: 500; }
     .startBtn {
-      background: #fff; color: #1B5E20; border: none; padding: 14px 35px;
-      border-radius: 25px; font-size: 15px; font-weight: 700; cursor: pointer;
+      background: #fff; color: #1B5E20; border: none; padding: 16px 35px;
+      border-radius: 25px; font-size: 16px; font-weight: 700; cursor: pointer;
       margin-bottom: 12px; display: block; width: 100%;
     }
     .closePermBtn {
       background: transparent; color: rgba(255,255,255,0.8);
-      border: 2px solid rgba(255,255,255,0.5); padding: 10px 25px;
-      border-radius: 20px; font-size: 13px; cursor: pointer; display: block; width: 100%;
+      border: 2px solid rgba(255,255,255,0.5); padding: 12px 25px;
+      border-radius: 22px; font-size: 14px; cursor: pointer; display: block; width: 100%;
     }
     #errorMsg { color: #ffcdd2; font-size: 12px; margin-top: 15px; }
     #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 100; transition: opacity 0.1s; }
     #flash.flash { opacity: 1; }
-    
-    /* Lock indicator */
-    #lockIndicator {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      width: 80px; height: 80px; border: 4px solid #FF9800;
-      border-radius: 50%; display: none; align-items: center; justify-content: center;
-      font-size: 40px; background: rgba(255,152,0,0.2); z-index: 5;
-      animation: pulse 1s infinite;
-    }
-    #lockIndicator.show { display: flex; }
-    #lockIndicator.locked { border-color: #4CAF50; background: rgba(76,175,80,0.2); animation: none; }
-    
-    @keyframes pulse {
-      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-      50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
-    }
   </style>
 </head>
 <body>
@@ -179,20 +130,16 @@
       <div class="permIcon">📱</div>
       <h3>AR Garden Preview</h3>
       <p>See how your plants will look in your actual yard!</p>
-      <div class="plantCount" id="plantCount">Select plants and place them in your view</div>
+      <div class="plantCount" id="plantCount">Loading plants...</div>
       <button class="startBtn" id="startBtn">📷 Start Camera</button>
-      <button class="closePermBtn" onclick="history.back()">← Back</button>
+      <button class="closePermBtn" id="closePermBtn">← Back to Designer</button>
       <div id="errorMsg"></div>
     </div>
   </div>
   
   <div id="cameraView"><video id="cameraVideo" autoplay playsinline muted></video></div>
   
-  <div id="gardenContainer">
-    <div id="plantsOverlay"></div>
-  </div>
-  
-  <div id="lockIndicator">📍</div>
+  <div id="plantsOverlay"></div>
   
   <div id="sizeControls">
     <button class="sizeBtn" id="shrinkBtn">−</button>
@@ -204,21 +151,20 @@
   <div id="hint"></div>
   
   <div id="topBar" style="display:none">
-    <button class="topBtn" onclick="history.back()">←</button>
+    <button class="topBtn" id="backBtn">←</button>
     <h3>🌿 AR Garden</h3>
     <button class="topBtn" id="flipBtn">🔄</button>
   </div>
   
   <div id="bottomControls" style="display:none">
-    <div id="plantTray"></div>
     <div id="modeRow">
       <button class="modeBtn active" id="singleModeBtn">🌱 Single</button>
-      <button class="modeBtn" id="allModeBtn">🌿 Select All</button>
-      <button class="modeBtn" id="lockModeBtn">📍 Lock</button>
+      <button class="modeBtn" id="allModeBtn">☑️ Select All</button>
+      <button class="modeBtn" id="lockModeBtn">🔓 Unlocked</button>
     </div>
     <div id="actionBtns">
-      <button class="actionBtn back" onclick="history.back()">← Back</button>
-      <button class="actionBtn" id="clearBtn">🗑</button>
+      <button class="actionBtn back" id="backBtn2">← Designer</button>
+      <button class="actionBtn" id="clearBtn">🗑 Clear</button>
       <button class="actionBtn primary" id="captureBtn">📸 Capture</button>
     </div>
   </div>
@@ -244,9 +190,15 @@
       const hash = window.location.hash.slice(1);
       if (hash) {
         DESIGN_PLANTS = JSON.parse(decodeURIComponent(hash));
-        document.getElementById('plantCount').textContent = DESIGN_PLANTS.length + ' plants from your design';
       }
     } catch(e) { console.log('No design plants'); }
+    
+    // Update plant count display
+    if (DESIGN_PLANTS.length > 0) {
+      document.getElementById('plantCount').textContent = DESIGN_PLANTS.length + ' plants from your design';
+    } else {
+      document.getElementById('plantCount').textContent = 'No plants in design. Go back and add some!';
+    }
     
     const $ = id => document.getElementById(id);
     const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -254,36 +206,28 @@
     // State
     let stream = null;
     let facingMode = 'environment';
-    let selectedTray = null;
     let selectedPlant = null;
     let placedPlants = [];
-    let mode = 'single'; // 'single', 'all', 'lock'
+    let mode = 'single'; // 'single', 'all'
     let isLocked = false;
-    let gardenRotation = { alpha: 0, beta: 0, gamma: 0 };
-    let lockRotation = null;
     let globalScale = 1;
     
-    // Build plant tray
-    const tray = $('plantTray');
-    PLANTS.forEach((p, i) => {
-      const d = document.createElement('div');
-      d.className = 'trayPlant';
-      d.innerHTML = `<img src="${p.img}"><span>${p.acr}</span>`;
-      d.onclick = () => selectTrayPlant(i, d);
-      tray.appendChild(d);
-    });
-    
-    function selectTrayPlant(index, el) {
-      deselectAll();
-      document.querySelectorAll('.trayPlant').forEach(t => t.classList.remove('selected'));
-      if (selectedTray === index) {
-        selectedTray = null;
-      } else {
-        selectedTray = index;
-        el.classList.add('selected');
-        showHint('Tap anywhere to place ' + PLANTS[index].name);
+    // Close window function (back to designer)
+    function closeAR() {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
       }
+      window.close();
+      // Fallback if window.close doesn't work (opened directly, not as popup)
+      setTimeout(() => {
+        showHint('Close this tab to return to designer', 5000);
+      }, 100);
     }
+    
+    // Back buttons - close window
+    $('closePermBtn').onclick = closeAR;
+    $('backBtn').onclick = closeAR;
+    $('backBtn2').onclick = closeAR;
     
     function showHint(msg, duration = 2500) {
       $('hint').textContent = msg;
@@ -304,19 +248,6 @@
         $('topBar').style.display = 'flex';
         $('bottomControls').style.display = 'block';
         
-        // Request device orientation permission (iOS 13+)
-        if (typeof DeviceOrientationEvent !== 'undefined' && 
-            typeof DeviceOrientationEvent.requestPermission === 'function') {
-          try {
-            const response = await DeviceOrientationEvent.requestPermission();
-            if (response === 'granted') {
-              setupOrientationTracking();
-            }
-          } catch(e) { console.log('Orientation permission denied'); }
-        } else {
-          setupOrientationTracking();
-        }
-        
         setTimeout(placeDesignPlants, 500);
       } catch (e) {
         console.error('Camera error:', e);
@@ -324,46 +255,20 @@
       }
     }
     
-    // Device orientation tracking for lock mode
-    function setupOrientationTracking() {
-      window.addEventListener('deviceorientation', (e) => {
-        if (!isLocked || !lockRotation) return;
-        
-        // Calculate rotation difference from lock point
-        const deltaAlpha = e.alpha - lockRotation.alpha;
-        const deltaBeta = e.beta - lockRotation.beta;
-        const deltaGamma = e.gamma - lockRotation.gamma;
-        
-        // Apply rotation to garden (simulated 3D effect)
-        const overlay = $('plantsOverlay');
-        overlay.style.transform = `
-          rotateY(${deltaAlpha * 0.3}deg)
-          rotateX(${-deltaBeta * 0.2}deg)
-        `;
-        
-        // Billboard effect - rotate each plant to face camera
-        placedPlants.forEach(el => {
-          // Subtle rotation toward viewer
-          const plantRotY = clamp(-deltaAlpha * 0.15, -30, 30);
-          el.style.transform = `rotateY(${plantRotY}deg)`;
-        });
-      }, true);
-    }
-    
     // Place plants from design (mockup-style positioning)
     function placeDesignPlants() {
       if (!DESIGN_PLANTS.length) {
-        showHint('Select a plant and tap to place', 3000);
+        showHint('No plants to display. Go back and add plants to your design.', 4000);
         return;
       }
       
       const w = innerWidth, h = innerHeight;
       
       // Mockup-style positioning: ground level with mound
-      const groundLevel = h * 0.75;
-      const moundHeight = h * 0.12;
-      const gardenLeft = w * 0.1;
-      const gardenWidth = w * 0.8;
+      const groundLevel = h * 0.78;
+      const moundHeight = h * 0.15;
+      const gardenLeft = w * 0.08;
+      const gardenWidth = w * 0.84;
       
       // Sort by Y position (back to front)
       const sorted = [...DESIGN_PLANTS].sort((a, b) => a.relY - b.relY);
@@ -377,7 +282,7 @@
         const yBase = groundLevel - moundHeight + (rY * moundHeight);
         
         // Size based on depth (further back = smaller)
-        const baseSize = 55 + rY * 20;
+        const baseSize = 50 + rY * 25;
         const size = baseSize;
         
         const x = gardenLeft + (dp.relX * gardenWidth);
@@ -386,7 +291,7 @@
         createPlant(plant, x - size/2, y, size, Math.floor(rY * 100) + 10);
       });
       
-      showHint(DESIGN_PLANTS.length + ' plants placed! Drag to adjust', 3000);
+      showHint('Drag to position. Use Select All to move/resize together.', 3500);
     }
     
     function createPlant(plantData, x, y, size, zIndex) {
@@ -409,30 +314,10 @@
       showHint(facingMode === 'environment' ? 'Back camera' : 'Front camera');
     };
     
-    // Tap to place or deselect
+    // Tap on overlay to deselect
     $('plantsOverlay').onclick = (e) => {
-      if (e.target !== $('plantsOverlay') && e.target !== $('gardenContainer')) return;
-      
-      if (selectedTray !== null) {
-        // Place new plant
-        const p = PLANTS[selectedTray];
-        const size = 70;
-        createPlant(p, e.clientX - size/2, e.clientY - size, size, 50);
-        showHint(p.name + ' placed!');
-      } else if (selectedPlant && mode === 'single') {
+      if (e.target === $('plantsOverlay')) {
         deselectAll();
-      }
-    };
-    
-    // Also handle tap on container
-    $('gardenContainer').onclick = (e) => {
-      if (e.target === $('gardenContainer') || e.target === $('plantsOverlay')) {
-        if (selectedTray !== null) {
-          const p = PLANTS[selectedTray];
-          const size = 70;
-          createPlant(p, e.clientX - size/2, e.clientY - size, size, 50);
-          showHint(p.name + ' placed!');
-        }
       }
     };
     
@@ -483,18 +368,15 @@
         el.classList.remove('dragging');
         el.releasePointerCapture(e.pointerId);
         
-        if (!moved && mode !== 'lock') {
+        if (!moved && !isLocked) {
           selectPlant(el);
         }
       };
     }
     
     function selectPlant(el) {
-      selectedTray = null;
-      document.querySelectorAll('.trayPlant').forEach(t => t.classList.remove('selected'));
-      
       if (mode === 'all') {
-        // In all mode, selection affects all
+        // In all mode, show controls for all
         placedPlants.forEach(p => p.classList.add('all-selected'));
         selectedPlant = el;
         updateSizeLabel();
@@ -502,6 +384,7 @@
       } else {
         // Single mode
         if (selectedPlant) selectedPlant.classList.remove('selected');
+        placedPlants.forEach(p => p.classList.remove('all-selected'));
         selectedPlant = el;
         el.classList.add('selected');
         updateSizeLabel();
@@ -527,64 +410,54 @@
     // Mode buttons
     $('singleModeBtn').onclick = () => setMode('single');
     $('allModeBtn').onclick = () => setMode('all');
-    $('lockModeBtn').onclick = () => setMode('lock');
+    $('lockModeBtn').onclick = () => toggleLock();
     
     function setMode(newMode) {
       mode = newMode;
       deselectAll();
       
       // Update button states
-      document.querySelectorAll('.modeBtn').forEach(b => b.classList.remove('active', 'locked'));
+      $('singleModeBtn').classList.toggle('active', newMode === 'single');
+      $('allModeBtn').classList.toggle('active', newMode === 'all');
       
       if (newMode === 'single') {
-        $('singleModeBtn').classList.add('active');
-        isLocked = false;
-        lockRotation = null;
-        $('plantsOverlay').classList.remove('locked');
-        $('plantsOverlay').style.transform = '';
-        placedPlants.forEach(el => el.style.transform = '');
-        $('lockIndicator').classList.remove('show', 'locked');
         showHint('Tap a plant to select and resize');
       } else if (newMode === 'all') {
-        $('allModeBtn').classList.add('active');
-        isLocked = false;
         placedPlants.forEach(p => p.classList.add('all-selected'));
         showHint('Drag any plant to move all. Use +/- to resize all.');
-        // Show size controls for all
         if (placedPlants.length > 0) {
           selectedPlant = placedPlants[0];
           $('sizeControls').classList.add('vis');
           updateSizeLabel();
         }
-      } else if (newMode === 'lock') {
-        $('lockModeBtn').classList.add('active');
-        $('lockIndicator').classList.add('show');
-        showHint('Tap screen to lock garden position. Walk around to see 3D effect!', 4000);
-        
-        // Wait for tap to lock
-        const lockHandler = (e) => {
-          if (e.target.closest('#bottomControls') || e.target.closest('#topBar')) return;
-          
-          isLocked = true;
-          lockRotation = { ...gardenRotation };
-          $('plantsOverlay').classList.add('locked');
-          $('lockModeBtn').classList.add('locked');
-          $('lockIndicator').textContent = '🔒';
-          $('lockIndicator').classList.add('locked');
-          setTimeout(() => $('lockIndicator').classList.remove('show'), 1500);
-          showHint('Garden locked! Move around to see 3D effect');
-          
-          document.removeEventListener('click', lockHandler);
-        };
-        document.addEventListener('click', lockHandler);
+      }
+    }
+    
+    function toggleLock() {
+      isLocked = !isLocked;
+      
+      $('lockModeBtn').classList.toggle('locked', isLocked);
+      $('lockModeBtn').innerHTML = isLocked ? '🔒 Locked' : '🔓 Unlocked';
+      
+      placedPlants.forEach(p => p.classList.toggle('locked', isLocked));
+      
+      if (isLocked) {
+        deselectAll();
+        showHint('Garden locked! Plants cannot be moved. Capture your photo!');
+      } else {
+        showHint('Garden unlocked. You can move plants again.');
       }
     }
     
     // Size controls
     $('growBtn').onclick = () => {
+      if (isLocked) return;
       if (mode === 'all') {
         globalScale = Math.min(globalScale * 1.15, 3);
-        placedPlants.forEach(el => applyScale(el, (parseFloat(el.dataset.scale) || 1) * 1.15));
+        placedPlants.forEach(el => {
+          const newScale = (parseFloat(el.dataset.scale) || 1) * 1.15;
+          applyScale(el, Math.min(newScale, 3));
+        });
       } else if (selectedPlant) {
         applyScale(selectedPlant, Math.min((parseFloat(selectedPlant.dataset.scale) || 1) * 1.15, 3));
       }
@@ -592,9 +465,13 @@
     };
     
     $('shrinkBtn').onclick = () => {
+      if (isLocked) return;
       if (mode === 'all') {
         globalScale = Math.max(globalScale * 0.85, 0.3);
-        placedPlants.forEach(el => applyScale(el, (parseFloat(el.dataset.scale) || 1) * 0.85));
+        placedPlants.forEach(el => {
+          const newScale = (parseFloat(el.dataset.scale) || 1) * 0.85;
+          applyScale(el, Math.max(newScale, 0.3));
+        });
       } else if (selectedPlant) {
         applyScale(selectedPlant, Math.max((parseFloat(selectedPlant.dataset.scale) || 1) * 0.85, 0.3));
       }
@@ -618,11 +495,14 @@
     }
     
     $('deleteBtn').onclick = () => {
+      if (isLocked) return;
       if (mode === 'all') {
-        placedPlants.forEach(p => p.remove());
-        placedPlants = [];
-        deselectAll();
-        showHint('All plants removed');
+        if (confirm('Remove all plants?')) {
+          placedPlants.forEach(p => p.remove());
+          placedPlants = [];
+          deselectAll();
+          showHint('All plants removed');
+        }
       } else if (selectedPlant) {
         selectedPlant.remove();
         placedPlants = placedPlants.filter(p => p !== selectedPlant);
@@ -632,11 +512,20 @@
     };
     
     $('clearBtn').onclick = () => {
-      placedPlants.forEach(p => p.remove());
-      placedPlants = [];
-      deselectAll();
-      globalScale = 1;
-      showHint('All plants cleared');
+      if (placedPlants.length === 0) {
+        showHint('No plants to clear');
+        return;
+      }
+      if (confirm('Clear all plants?')) {
+        placedPlants.forEach(p => p.remove());
+        placedPlants = [];
+        deselectAll();
+        globalScale = 1;
+        isLocked = false;
+        $('lockModeBtn').classList.remove('locked');
+        $('lockModeBtn').innerHTML = '🔓 Unlocked';
+        showHint('All plants cleared');
+      }
     };
     
     // Capture
@@ -675,7 +564,7 @@
         }
         
         const a = document.createElement('a');
-        a.download = 'ecoplantia-ar.png';
+        a.download = 'ecoplantia-ar-' + Date.now() + '.png';
         a.href = c.toDataURL('image/png');
         a.click();
         showHint('Photo saved!');
@@ -684,11 +573,6 @@
         showHint('Capture failed');
       }
     };
-    
-    // Track device orientation for lock mode
-    window.addEventListener('deviceorientation', (e) => {
-      gardenRotation = { alpha: e.alpha || 0, beta: e.beta || 0, gamma: e.gamma || 0 };
-    }, true);
   </script>
 </body>
 </html>
