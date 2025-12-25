@@ -1,0 +1,3357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Ecoplantia Garden Designer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+
+    :root {
+      --top: 44px;
+      --bottom: 50px;
+      --tray: 56px;
+      --ctrl: 40px;
+      --side: 0px;
+      --scale: 1;
+    }
+
+    /* ===== WIDE MODE ===== */
+    body.wide-mode {
+      --top: 28px;
+      --bottom: 0px;
+      --tray: 44px;
+      --ctrl: 28px;
+      --side: 36px;
+    }
+
+    body.wide-mode #topBar { height: 28px; padding: 0 4px; }
+    body.wide-mode #topBar img { height: 14px; }
+    body.wide-mode .topBtn { padding: 2px 4px; font-size: 8px; }
+    body.wide-mode .topBtnGroup { gap: 2px; }
+    body.wide-mode .screenZoom { gap: 1px; }
+    body.wide-mode .szBtn { width: 16px; height: 16px; font-size: 9px; }
+    body.wide-mode #screenZoomLvl { font-size: 7px; min-width: 20px; }
+
+    body.wide-mode #bottomBar { display: none; }
+    body.wide-mode #sideNav { display: flex; }
+    body.wide-mode #main { bottom: 0; right: 36px; }
+
+    body.wide-mode #viewport { bottom: calc(var(--tray) + var(--ctrl)); }
+    body.wide-mode #ctrlBar { bottom: var(--tray); height: 28px; padding: 0 4px; }
+    body.wide-mode .ctrlLabel { font-size: 7px; }
+    body.wide-mode .ctrlChk { width: 10px; height: 10px; }
+    body.wide-mode .zBtn { width: 18px; height: 18px; font-size: 9px; }
+    body.wide-mode #zoomLvl { font-size: 7px; min-width: 22px; }
+
+    body.wide-mode #plantTray { min-height: 50px; }
+    body.wide-mode #plantTray.collapsed { min-height: 16px; }
+    body.wide-mode .trayHead { padding: 2px 4px; font-size: 6px; }
+    body.wide-mode .collapseBtn { width: 14px; height: 14px; font-size: 8px; }
+    body.wide-mode .trayList { padding: 4px; gap: 4px; }
+    body.wide-mode .pItem { width: 40px; height: 40px; }
+    body.wide-mode .pItem .ico { width: 18px; height: 18px; font-size: 5px; border-width: 1px; }
+    body.wide-mode .pItem .lbl { font-size: 4px; }
+
+    body.wide-mode #hint { top: 4px; left: 4px; padding: 2px 4px; font-size: 6px; }
+
+    body.wide-mode .sideBtn { width: 28px; height: 28px; }
+    body.wide-mode .sideBtn svg { width: 12px; height: 12px; }
+    body.wide-mode .sideBtn span { font-size: 5px; }
+
+    body.wide-mode #setupPanel { padding: 6px; gap: 4px; }
+    body.wide-mode .setupTitle { font-size: 11px; margin-bottom: 2px; }
+    body.wide-mode .setupSub { font-size: 8px; margin-bottom: 4px; }
+    body.wide-mode .frmGrp { margin-bottom: 4px; }
+    body.wide-mode .frmGrp label { font-size: 8px; margin-bottom: 2px; }
+    body.wide-mode .frmGrp input { padding: 4px; font-size: 11px; }
+    body.wide-mode .shapeBtn { padding: 3px 2px; }
+    body.wide-mode .shapeBtn svg { width: 16px; height: 16px; }
+    body.wide-mode .shapeBtn span { font-size: 5px; }
+    body.wide-mode .szRow { gap: 6px; }
+    body.wide-mode .stepBtn { width: 28px; height: 28px; font-size: 14px; }
+    body.wide-mode .stepperWrap input { font-size: 12px; padding: 4px 0; }
+    body.wide-mode .slider { height: 4px; margin-top: 4px; }
+    body.wide-mode .slider::-webkit-slider-thumb { width: 14px; height: 14px; }
+    body.wide-mode .sizePreview { padding: 6px; margin-top: 4px; }
+    body.wide-mode #previewSize { font-size: 12px; }
+    body.wide-mode #previewArea { font-size: 8px; }
+    body.wide-mode .mainBtn { padding: 5px; font-size: 9px; margin-top: 4px; }
+
+    body.wide-mode .panelHead { padding: 4px 6px; }
+    body.wide-mode .panelHead h2 { font-size: 10px; }
+    body.wide-mode .panelBody { padding: 6px; }
+    body.wide-mode .card { padding: 5px; margin-bottom: 4px; }
+    body.wide-mode .card h3 { font-size: 8px; margin-bottom: 2px; }
+    body.wide-mode .card p { font-size: 7px; margin-bottom: 3px; }
+    body.wide-mode .stepN { width: 12px; height: 12px; font-size: 6px; }
+    body.wide-mode .badge { padding: 1px 2px; font-size: 5px; }
+    body.wide-mode .statBox { padding: 4px; }
+    body.wide-mode .statBox .val { font-size: 11px; }
+    body.wide-mode .statBox .lbl { font-size: 5px; }
+    body.wide-mode .pRow { padding: 2px 0; }
+    body.wide-mode .pRow .dot { width: 14px; height: 14px; font-size: 4px; margin-right: 4px; }
+    body.wide-mode .pRow .nm { font-size: 7px; }
+    body.wide-mode .pRow .sz { font-size: 5px; }
+    body.wide-mode .pRow .cnt { font-size: 9px; }
+    body.wide-mode #mockCtrl { padding: 3px; gap: 2px; }
+    body.wide-mode #mockCtrl button { padding: 3px; font-size: 7px; }
+    body.wide-mode #toast { bottom: 48px; padding: 3px 6px; font-size: 7px; }
+
+    body.wide-mode .poly-dot { width: 22px; height: 22px; font-size: 8px; }
+    body.wide-mode .poly-dot.placed { width: 18px; height: 18px; font-size: 6px; }
+    body.wide-mode .poly-measure { font-size: 9px; padding: 2px 6px; }
+    body.wide-mode #polyInstructions { padding: 10px 15px; max-width: 220px; }
+    body.wide-mode #polyInstructions h3 { font-size: 11px; }
+    body.wide-mode #polyInstructions p { font-size: 9px; }
+    body.wide-mode #polyDoneBtn { padding: 5px 10px; font-size: 10px; }
+
+    /* ===== SCREEN ZOOM ===== */
+    #main {
+      transform: scale(var(--scale));
+      transform-origin: top left;
+      width: calc(100% / var(--scale));
+      height: calc((100% - var(--top)) / var(--scale));
+    }
+
+    /* ===== TOP BAR ===== */
+    #topBar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--top);
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6px;
+      z-index: 1000;
+      transition: height 0.2s;
+    }
+
+    /* Smaller top bar when tools hidden */
+    #topBar:has(#designTools[style*="none"]) {
+      height: 36px;
+    }
+
+    #topBar img { height: 18px; }
+    .topBtnGroup { display: flex; gap: 3px; align-items: center; }
+    .topBtn {
+      background: #E8F5E9;
+      color: #1B9E31;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-weight: bold;
+      font-size: 9px;
+      cursor: pointer;
+    }
+    .topBtn.grn { background: #1B9E31; color: #fff; }
+
+    .screenZoom {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: #f0f0f0;
+      padding: 2px 3px;
+      border-radius: 4px;
+    }
+    .szBtn {
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #screenZoomLvl {
+      font-size: 8px;
+      font-weight: bold;
+      color: #666;
+      min-width: 26px;
+      text-align: center;
+    }
+
+    /* ===== MAIN ===== */
+    #main {
+      position: fixed;
+      top: var(--top);
+      left: 0;
+      right: var(--side);
+      bottom: var(--bottom);
+      overflow: hidden;
+    }
+
+    /* ===== BOTTOM NAV ===== */
+    #bottomBar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: var(--bottom);
+      background: #fff;
+      border-top: 1px solid #ddd;
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px;
+      z-index: 1000;
+    }
+
+    .navBtn {
+      flex: 1;
+      max-width: 65px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #666;
+      padding: 3px;
+    }
+    .navBtn.active { background: #1B9E31; color: #fff; }
+    .navBtn svg { width: 16px; height: 16px; }
+    .navBtn span { font-size: 7px; font-weight: bold; margin-top: 1px; }
+
+    /* ===== SIDE NAV ===== */
+    #sideNav {
+      display: none;
+      position: fixed;
+      top: var(--top);
+      right: 0;
+      bottom: 0;
+      width: 36px;
+      background: #fff;
+      border-left: 1px solid #ddd;
+      flex-direction: column;
+      align-items: center;
+      padding: 4px 0;
+      gap: 3px;
+      z-index: 1000;
+    }
+
+    .sideBtn {
+      width: 28px;
+      height: 28px;
+      background: #f0f0f0;
+      border: none;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #666;
+    }
+    .sideBtn.active { background: #1B9E31; color: #fff; }
+    .sideBtn svg { width: 12px; height: 12px; }
+    .sideBtn span { font-size: 5px; font-weight: bold; }
+
+    /* ===== CANVAS AREA ===== */
+    #canvasArea {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    #canvasArea.vis { display: flex; }
+
+    /* ===== VIEWPORT (garden canvas area) ===== */
+    #viewport {
+      position: relative;
+      overflow: auto;
+      background: #e8e8e8;
+      flex-shrink: 0;
+    }
+
+    #viewport::-webkit-scrollbar { width: 8px; height: 8px; }
+    #viewport::-webkit-scrollbar-track { background: #d0d0d0; }
+    #viewport::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+
+    #viewportInner {
+      display: inline-block;
+      padding: 6px;
+    }
+
+    #gardenCanvas {
+      position: relative;
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      transform-origin: 0 0;
+    }
+
+    #gardenShape {
+      position: absolute;
+      border: 2px dashed #1B9E31;
+      background: rgba(27,158,49,0.08);
+    }
+    #gardenShape.circle { border-radius: 50%; }
+
+    #gridOver {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      background-image:
+        linear-gradient(to right, rgba(27,158,49,0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(27,158,49,0.2) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    #gridOver.vis { opacity: 1; }
+
+    .gLabel {
+      position: absolute;
+      font-size: 8px;
+      font-weight: bold;
+      color: #aaa;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .gLabel.back { top: 4px; left: 50%; transform: translateX(-50%); }
+    .gLabel.front { bottom: 4px; left: 50%; transform: translateX(-50%); }
+
+    .polygon-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    /* Polygon drawing dots */
+    .poly-dot {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: grab;
+      touch-action: none;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    
+    .poly-dot.active {
+      background: #4CAF50;
+      border: 3px solid #2E7D32;
+    }
+    
+    .poly-dot.placed {
+      background: #FFC107;
+      border: 3px solid #FF8F00;
+      width: 22px;
+      height: 22px;
+      font-size: 8px;
+    }
+    
+    .poly-dot.start {
+      background: #2196F3;
+      border: 3px solid #1565C0;
+    }
+    
+    .poly-dot:active {
+      cursor: grabbing;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    /* Measurement display */
+    .poly-measure {
+      position: absolute;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 25;
+      white-space: nowrap;
+    }
+
+    /* Polygon mode instructions */
+    #polyInstructions {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.95);
+      padding: 15px 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      text-align: center;
+      z-index: 30;
+      max-width: 280px;
+    }
+    
+    #polyInstructions h3 {
+      font-size: 14px;
+      color: #1B9E31;
+      margin-bottom: 8px;
+    }
+    
+    #polyInstructions p {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    
+    #polyInstructions.hid {
+      display: none;
+    }
+
+    /* Done button for polygon */
+    #polyDoneBtn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: #1B9E31;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 30;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      display: none;
+    }
+    
+    #polyDoneBtn.vis {
+      display: block;
+    }
+
+    /* Plants on canvas */
+    .plant {
+      position: absolute;
+      border: 2px dashed #333;
+      border-radius: 50%;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      touch-action: none;
+      z-index: 10;
+    }
+    .plant .acr { font-size: 8px; font-weight: bold; color: #333; }
+    .plant.drag { z-index: 100; }
+    .plant.ok { box-shadow: 0 0 0 3px rgba(27,158,49,0.5); }
+    .plant.bad { box-shadow: 0 0 0 3px rgba(200,50,50,0.5); }
+
+    /* Hint */
+    #hint {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: #fff;
+      padding: 4px 8px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      font-size: 8px;
+      font-weight: bold;
+      color: #666;
+      z-index: 100;
+    }
+    #hint.hid { display: none; }
+
+    /* ===== CONTROL BAR ===== */
+    #ctrlBar {
+      height: var(--ctrl);
+      background: #fff;
+      border-top: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    .ctrlGrp { display: flex; align-items: center; gap: 8px; }
+    .ctrlGrp label { display: flex; align-items: center; gap: 3px; cursor: pointer; }
+    .ctrlLabel { font-size: 9px; font-weight: bold; color: #666; }
+    .ctrlChk { width: 14px; height: 14px; accent-color: #1B9E31; }
+
+    .matrixBtn {
+      background: #E8F5E9;
+      color: #1B5E20;
+      border: 1px solid #1B9E31;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Matrix Modal */
+    #matrixModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+    #matrixModal.vis { display: flex; }
+    
+    .matrixContent {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      width: 90%;
+      max-width: 300px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    
+    .matrixContent h3 {
+      margin: 0 0 12px;
+      color: #1B9E31;
+      font-size: 14px;
+    }
+    
+    .matrixRow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    
+    .matrixRow label {
+      font-size: 11px;
+      font-weight: bold;
+      color: #333;
+      min-width: 70px;
+    }
+    
+    .matrixRow select {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+    
+    .matrixBtns {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    
+    .matrixBtns button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .matrixBtns .cancelBtn {
+      background: #eee;
+      color: #666;
+    }
+    
+    .matrixBtns .applyBtn {
+      background: #1B9E31;
+      color: #fff;
+    }
+    
+    .matrixHelp {
+      font-size: 9px;
+      color: #888;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+      line-height: 1.4;
+    }
+
+    .zoomGrp { display: flex; align-items: center; gap: 3px; }
+    .zBtn {
+      width: 24px;
+      height: 24px;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #zoomLvl { font-size: 9px; font-weight: bold; color: #666; min-width: 30px; text-align: center; }
+
+    /* ===== PLANT TRAY (horizontal rows, wrapping) ===== */
+    #plantTray {
+      background: #fff;
+      border-top: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    #plantTray.collapsed {
+      min-height: 20px;
+    }
+    #plantTray.collapsed .trayList { display: none; }
+
+    .trayHead {
+      padding: 3px 8px;
+      font-size: 8px;
+      font-weight: bold;
+      color: #666;
+      background: #f9f9f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .collapseBtn {
+      width: 16px;
+      height: 16px;
+      background: #e0e0e0;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+
+    .trayList {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 6px;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-content: flex-start;
+    }
+
+    .trayList::-webkit-scrollbar { width: 6px; }
+    .trayList::-webkit-scrollbar-track { background: #eee; }
+    .trayList::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+
+    .pItem {
+      width: 52px;
+      height: 52px;
+      background: #E8F5E9;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .pItem.sel { border-color: #1B9E31; background: #fff; box-shadow: 0 0 0 2px rgba(27,158,49,0.3); }
+    .pItem.toolbox { border-style: dashed; border-color: #999; }
+    .pItem.toolbox .ico { border-color: #999; background: #f5f5f5; }
+    .pItem .ico {
+      width: 24px;
+      height: 24px;
+      border: 2px dashed #1B9E31;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 7px;
+      font-weight: bold;
+      color: #158526;
+      background: #fff;
+    }
+    .pItem .lbl {
+      font-size: 6px;
+      font-weight: bold;
+      margin-top: 2px;
+      color: #333;
+      text-align: center;
+      max-width: 50px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ===== SETUP PANEL ===== */
+    #setupPanel {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #fff;
+      padding: 12px;
+      overflow-y: auto;
+      z-index: 400;
+    }
+    #setupPanel.hid { display: none; }
+
+    .setupTitle { font-size: 15px; font-weight: bold; color: #1B9E31; margin-bottom: 4px; }
+    .setupSub { font-size: 10px; color: #666; margin-bottom: 10px; }
+
+    .frmGrp { margin-bottom: 10px; }
+    .frmGrp label { display: block; font-weight: bold; font-size: 10px; margin-bottom: 3px; color: #333; }
+    .frmGrp input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+
+    .shapeRow { display: flex; gap: 6px; }
+    .shapeBtn {
+      flex: 1;
+      padding: 8px 4px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      text-align: center;
+    }
+    .shapeBtn.sel { border-color: #1B9E31; background: #E8F5E9; }
+    .shapeBtn svg { width: 22px; height: 22px; stroke: #666; }
+    .shapeBtn.sel svg { stroke: #1B9E31; }
+    .shapeBtn span { display: block; font-size: 7px; font-weight: bold; margin-top: 2px; }
+
+    .szRow { display: flex; gap: 10px; }
+    .szRow .frmGrp { flex: 1; margin-bottom: 0; }
+
+    /* Stepper controls */
+    .stepperWrap {
+      display: flex;
+      align-items: center;
+      background: #f5f5f5;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+
+    .stepBtn {
+      width: 40px;
+      height: 40px;
+      background: #E8F5E9;
+      border: none;
+      font-size: 20px;
+      font-weight: bold;
+      color: #1B9E31;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    
+    .stepBtn:hover { background: #C8E6C9; }
+    .stepBtn:active { background: #A5D6A7; }
+
+    .stepperWrap input {
+      flex: 1;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+      border: none;
+      background: transparent;
+      padding: 8px 0;
+      min-width: 0;
+    }
+
+    /* Slider */
+    .slider {
+      width: 100%;
+      height: 6px;
+      margin-top: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #ddd;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #1B9E31;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    .slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      background: #1B9E31;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    /* Size preview */
+    .sizePreview {
+      background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #previewSize {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1B9E31;
+    }
+
+    #previewArea {
+      font-size: 11px;
+      color: #666;
+    }
+
+    .mainBtn {
+      width: 100%;
+      padding: 8px;
+      background: #1B9E31;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .mainBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== PANELS ===== */
+    .panel {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #f5f5f5;
+      flex-direction: column;
+      z-index: 500;
+    }
+    .panel.vis { display: flex; }
+
+    .panelHead {
+      padding: 8px 10px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      flex-shrink: 0;
+    }
+    .panelHead h2 { font-size: 12px; color: #1B9E31; margin: 0; }
+
+    .uploadBtn {
+      background: #E8F5E9;
+      color: #1B9E31;
+      border: 1px solid #1B9E31;
+      border-radius: 15px;
+      padding: 4px 10px;
+      font-size: 9px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .panelBody { 
+      padding: 10px; 
+      padding-bottom: 70px; /* Extra space for bottom nav bar */
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card:last-child { margin-bottom: 0; }
+    .card h3 { font-size: 11px; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+    .card p { font-size: 9px; color: #666; margin-bottom: 5px; }
+
+    .stepN {
+      width: 16px;
+      height: 16px;
+      background: #1B9E31;
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 7px;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+    .badge.pend { background: #FFF3CD; color: #856404; }
+    .badge.done { background: #D4EDDA; color: #155724; }
+
+    #prevImg { width: 100%; border-radius: 4px; margin-top: 6px; display: none; }
+
+    .secBtn {
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 6px;
+      font-weight: bold;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    /* Mockup */
+    #mockArea {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(180deg, #87CEEB 0%, #87CEEB 35%, #7BC043 35%, #4A9028 60%, #2D5A18 100%);
+      overflow: hidden;
+    }
+    #mockBg { position: absolute; inset: 0; background-size: cover; background-position: center; }
+    #mockPlants { position: absolute; inset: 0; }
+    
+    .mPlant { 
+      position: absolute; 
+      cursor: move; 
+      touch-action: none;
+      border: 3px solid transparent;
+      border-radius: 50%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .mPlant img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    
+    /* Selected plant glow effect */
+    .mPlant.selected {
+      border-color: #FFD700;
+      box-shadow: 0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,215,0,0.4);
+      animation: plantPulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes plantPulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(255,215,0,0.8), 0 0 30px rgba(255,215,0,0.4); }
+      50% { box-shadow: 0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.6); }
+    }
+    
+    /* Resize controls panel */
+    #plantControls {
+      position: absolute;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.95);
+      border-radius: 20px;
+      padding: 8px 12px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      z-index: 100;
+    }
+    
+    #plantControls.vis {
+      display: flex;
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    
+    #plantControls .plantName {
+      font-size: 10px;
+      font-weight: bold;
+      color: #1B9E31;
+      max-width: 80px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    #plantControls .sizeControls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f0f0f0;
+      padding: 4px 8px;
+      border-radius: 15px;
+    }
+    
+    #plantControls .sizeBtn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 50%;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, background 0.15s;
+    }
+    
+    #plantControls .sizeBtn:active {
+      transform: scale(0.9);
+    }
+    
+    #plantControls .sizeBtn.shrink {
+      background: #ffcccb;
+      color: #c0392b;
+    }
+    
+    #plantControls .sizeBtn.grow {
+      background: #c8f7c5;
+      color: #27ae60;
+    }
+    
+    #plantControls .sizeLabel {
+      font-size: 11px;
+      font-weight: bold;
+      color: #666;
+      min-width: 35px;
+      text-align: center;
+    }
+    
+    #plantControls .deleteBtn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 50%;
+      background: #e74c3c;
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #plantControls .closeBtn {
+      width: 24px;
+      height: 24px;
+      border: none;
+      border-radius: 50%;
+      background: #ddd;
+      color: #666;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #mockCtrl {
+      padding: 6px 10px;
+      background: #fff;
+      border-top: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .moveModeWrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .moveModeLabel {
+      font-size: 9px;
+      font-weight: bold;
+      color: #666;
+    }
+    
+    .moveModeSwitch {
+      display: flex;
+      background: #e0e0e0;
+      border-radius: 16px;
+      padding: 2px;
+    }
+    
+    .modeBtn {
+      width: 32px;
+      height: 26px;
+      border: none;
+      background: transparent;
+      border-radius: 13px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modeBtn.active {
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+
+    #mockCtrl .secBtn { 
+      flex: 0;
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    .bgZoomBtns {
+      display: none;
+      gap: 2px;
+    }
+    
+    .bgZoomBtns.vis {
+      display: flex;
+    }
+    
+    .zoomBgBtn {
+      width: 28px;
+      height: 26px;
+      border: 1px solid #1B9E31;
+      background: #E8F5E9;
+      color: #1B5E20;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* Background image draggable indicator */
+    #mockBg.draggable {
+      cursor: move;
+      outline: 3px dashed #1B9E31;
+      outline-offset: -3px;
+    }
+    
+    /* All plants mode indicator */
+    #mockPlants.move-all .mPlant {
+      box-shadow: 0 0 0 2px rgba(27,158,49,0.6) !important;
+    }
+
+    /* Summary */
+    .statGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .statBox { background: #E8F5E9; padding: 6px; border-radius: 6px; text-align: center; }
+    .statBox .val { font-size: 14px; font-weight: bold; color: #1B9E31; }
+    .statBox .lbl { font-size: 7px; color: #666; }
+
+    .pRow { display: flex; align-items: center; padding: 4px 0; border-bottom: 1px solid #eee; }
+    .pRow:last-child { border: none; }
+    .pRow .dot {
+      width: 18px; height: 18px;
+      border: 2px dashed #1B9E31;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 5px; font-weight: bold;
+      background: #E8F5E9; color: #158526;
+      margin-right: 6px; flex-shrink: 0;
+    }
+    .pRow .info { flex: 1; }
+    .pRow .nm { font-weight: bold; font-size: 9px; }
+    .pRow .sz { font-size: 7px; color: #666; }
+    .pRow .cnt { font-size: 11px; font-weight: bold; color: #1B9E31; }
+
+    /* Bloom Chart */
+    #bloomChartWrap { margin-top: 6px; }
+    .bloomHeader {
+      display: grid;
+      grid-template-columns: 70px repeat(12, 1fr);
+      gap: 2px;
+      font-size: 6px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .bloomHeader span { text-align: center; }
+    .bloomRow {
+      display: grid;
+      grid-template-columns: 70px repeat(12, 1fr);
+      gap: 2px;
+      margin-bottom: 3px;
+      align-items: center;
+    }
+    .bloomRow .bloomLabel {
+      font-size: 7px;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bloomCell {
+      height: 14px;
+      border-radius: 2px;
+      background: #f0f0f0;
+      border: 1px solid #e0e0e0;
+    }
+    .bloomCell.active {
+      border-color: #aaa;
+    }
+
+    /* Plant Cards - Horizontal Slider */
+    #plantCards {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding: 6px 2px 10px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    #plantCards::-webkit-scrollbar { height: 6px; }
+    #plantCards::-webkit-scrollbar-track { background: #eee; border-radius: 3px; }
+    #plantCards::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+    
+    .plantCard {
+      flex: 0 0 120px;
+      min-width: 120px;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      scroll-snap-align: start;
+    }
+    .plantCard img {
+      width: 100%;
+      height: 55px;
+      object-fit: contain;
+      background: #fafafa;
+      border-radius: 4px;
+    }
+    .plantCard .pcName {
+      font-size: 8px;
+      font-weight: bold;
+      color: #1B9E31;
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .plantCard .pcFacts {
+      font-size: 7px;
+      color: #666;
+      margin-top: 3px;
+      line-height: 1.3;
+    }
+    .plantCard .pcFacts b { color: #333; }
+    
+    /* Scroll hint indicator */
+    .scrollHint {
+      font-size: 8px;
+      color: #999;
+      text-align: right;
+      margin-bottom: 4px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 56px;
+      left: 50%;
+      transform: translateX(-50%) translateY(40px);
+      background: #333;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: bold;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+  <header id="topBar">
+    <img src="https://static.wixstatic.com/media/94bd1f_221f30cd2cd24559a6075cbc06f95f0a~mv2.png/v1/fill/w_503,h_140,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/Logo.png" alt="Ecoplantia">
+    <div class="topBtnGroup" id="designTools">
+      <button class="topBtn" id="undoBtn">↩</button>
+      <button class="topBtn grn" id="saveBtn">💾</button>
+      <button class="topBtn" id="newBtn">New</button>
+      <button class="topBtn" id="editBtn">Edit</button>
+      <div class="screenZoom">
+        <button class="szBtn" id="szOut">−</button>
+        <span id="screenZoomLvl">100%</span>
+        <button class="szBtn" id="szIn">+</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="setupPanel">
+      <div class="setupTitle">Design Your Garden</div>
+      <p class="setupSub">Create a roll-out native plant garden.</p>
+      <div class="frmGrp">
+        <label>Shape</label>
+        <div class="shapeRow">
+          <div class="shapeBtn sel" data-shape="rectangle">
+            <svg viewBox="0 0 40 40" fill="none" stroke-width="2"><rect x="4" y="8" width="32" height="24" rx="2"/></svg>
+            <span>Rectangle</span>
+          </div>
+          <div class="shapeBtn" data-shape="circle">
+            <svg viewBox="0 0 40 40" fill="none" stroke-width="2"><circle cx="20" cy="20" r="16"/></svg>
+            <span>Circle</span>
+          </div>
+          <div class="shapeBtn" data-shape="polygon">
+            <svg viewBox="0 0 40 40" fill="none" stroke-width="2"><polygon points="20,4 36,16 30,36 10,36 4,16"/></svg>
+            <span>Custom</span>
+          </div>
+        </div>
+      </div>
+      <div class="szRow">
+        <div class="frmGrp">
+          <label>Width (ft)</label>
+          <div class="stepperWrap">
+            <button class="stepBtn" data-target="wIn" data-dir="-1">−</button>
+            <input type="number" id="wIn" min="2" max="24" value="8" readonly>
+            <button class="stepBtn" data-target="wIn" data-dir="1">+</button>
+          </div>
+          <input type="range" class="slider" id="wSlider" min="2" max="24" value="8">
+        </div>
+        <div class="frmGrp">
+          <label>Depth (ft)</label>
+          <div class="stepperWrap">
+            <button class="stepBtn" data-target="dIn" data-dir="-1">−</button>
+            <input type="number" id="dIn" min="2" max="24" value="4" readonly>
+            <button class="stepBtn" data-target="dIn" data-dir="1">+</button>
+          </div>
+          <input type="range" class="slider" id="dSlider" min="2" max="24" value="4">
+        </div>
+      </div>
+      
+      <!-- Live preview of dimensions -->
+      <div class="sizePreview" id="sizePreview">
+        <span id="previewSize">8 × 4 ft</span>
+        <span id="previewArea">= 32 sq ft</span>
+      </div>
+      <button class="mainBtn" id="createBtn">Create Garden</button>
+    </section>
+
+    <section id="canvasArea">
+      <!-- Garden viewport at top -->
+      <div id="viewport">
+        <div id="viewportInner">
+          <div id="gardenCanvas">
+            <div id="gardenShape"></div>
+            <div id="gridOver"></div>
+            <div class="gLabel back">← BACK</div>
+            <div class="gLabel front">FRONT →</div>
+          </div>
+        </div>
+        <div id="hint">👆 Select plant, tap garden</div>
+        <button id="polyDoneBtn">✓ Done - Close Shape</button>
+        <div id="polyInstructions" class="hid">
+          <h3>Draw Your Garden Shape</h3>
+          <p><strong>Step 1:</strong> Choose an approximate size above (width × depth).</p>
+          <p><strong>Step 2:</strong> Drag the <span style="color:#4CAF50">green dot</span> to position your first corner. Move it as many times as needed.</p>
+          <p><strong>Step 3:</strong> Tap anywhere else on the grid to place the second point and begin drawing.</p>
+          <p><strong>Step 4:</strong> Continue adding corners. Tap near the first dot or press "Done" to close.</p>
+          <button class="mainBtn" onclick="this.parentElement.classList.add('hid')">Got it!</button>
+        </div>
+      </div>
+
+      <!-- Controls bar -->
+      <div id="ctrlBar">
+        <div class="ctrlGrp">
+          <label><input type="checkbox" class="ctrlChk" id="gridChk"><span class="ctrlLabel">Grid</span></label>
+          <label><input type="checkbox" class="ctrlChk" id="overChk"><span class="ctrlLabel">Overlap</span></label>
+          <button class="matrixBtn" id="matrixBtn">⊞ Matrix</button>
+        </div>
+        <div class="zoomGrp">
+          <button class="zBtn" id="zOut">−</button>
+          <span id="zoomLvl">100%</span>
+          <button class="zBtn" id="zIn">+</button>
+          <button class="zBtn" id="zFit" style="font-size:7px">Fit</button>
+        </div>
+      </div>
+
+      <!-- Plant tray at bottom (horizontal scroll) -->
+      <div id="plantTray">
+        <div class="trayHead">
+          <span>PLANTS — tap to select, then tap garden</span>
+          <button class="collapseBtn" id="collapseBtn">▼</button>
+        </div>
+        <div class="trayList" id="plantList"></div>
+      </div>
+    </section>
+
+    <section class="panel" id="purchasePanel">
+      <div class="panelHead"><h2>Complete Order</h2></div>
+      <div class="panelBody">
+        <div class="card">
+          <h3><span class="stepN">1</span> Your Design</h3>
+          <img id="prevImg" alt="Preview" style="display:block; width:100%; border-radius:4px; margin-top:6px; border:1px solid #ddd;">
+        </div>
+        <div class="card">
+          <h3><span class="stepN">2</span> Save <span class="badge pend" id="saveStat">Not Saved</span></h3>
+          <p>Download your plan as PNG.</p>
+          <button class="mainBtn" id="savePlanBtn">💾 Save Plan</button>
+        </div>
+        <div class="card">
+          <h3><span class="stepN">3</span> Purchase</h3>
+          <p>Add plants & materials to cart.</p>
+          <button class="mainBtn" id="purchaseBtn">🛒 Purchase Now</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="mockupPanel">
+      <div class="panelHead" style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Mock-up</h2>
+        <div style="display:flex; gap:8px;">
+          <button class="uploadBtn" id="arModeBtn">📱 AR View</button>
+          <button class="uploadBtn" id="photoBtn"><input type="file" id="photoIn" accept="image/*" style="display:none">📷 Upload Background</button>
+        </div>
+      </div>
+      <div id="mockArea">
+        <div id="mockBg"></div>
+        <div id="mockPlants"></div>
+        <div id="plantControls">
+          <span class="plantName" id="selectedPlantName">Plant</span>
+          <div class="sizeControls">
+            <button class="sizeBtn shrink" id="shrinkBtn">−</button>
+            <span class="sizeLabel" id="sizeLabel">100%</span>
+            <button class="sizeBtn grow" id="growBtn">+</button>
+          </div>
+          <button class="deleteBtn" id="deletePlantBtn">🗑</button>
+          <button class="closeBtn" id="closeControlsBtn">✕</button>
+        </div>
+      </div>
+      <div id="mockCtrl">
+        <div class="moveModeWrap">
+          <span class="moveModeLabel">Move:</span>
+          <div class="moveModeSwitch">
+            <button class="modeBtn active" data-mode="single" title="Move one plant">🌱</button>
+            <button class="modeBtn" data-mode="all" title="Move all plants together">🌿</button>
+            <button class="modeBtn" data-mode="bg" title="Move/resize background">🖼️</button>
+          </div>
+        </div>
+        <div class="bgZoomBtns" id="bgZoomBtns">
+          <button class="zoomBgBtn" id="bgZoomOut">−</button>
+          <span id="bgZoomLvl">100%</span>
+          <button class="zoomBgBtn" id="bgZoomIn">+</button>
+        </div>
+        <button class="secBtn" id="selectAllBtn" title="Select all plants">☑️</button>
+        <button class="secBtn" id="addMockPlantBtn" title="Add plant to mockup">➕</button>
+        <button class="secBtn" id="refreshBtn">🔄</button>
+        <button class="secBtn" id="saveMockBtn">💾</button>
+      </div>
+    </section>
+
+    <section class="panel" id="summaryPanel">
+      <div class="panelHead"><h2>Plant List & Summary</h2></div>
+      <div class="panelBody" id="summaryBody">
+        <!-- Stats -->
+        <div class="card"><h3>📊 Garden Stats</h3><div class="statGrid" id="statGrid"></div></div>
+        
+        <!-- Plant counts -->
+        <div class="card"><h3>🌿 Plants in Design</h3><div id="plantSum"></div></div>
+        
+        <!-- Bloom Chart -->
+        <div class="card">
+          <h3>🌸 Bloom Periods</h3>
+          <div id="bloomChartWrap">
+            <div class="bloomHeader" id="bloomHeader"></div>
+            <div id="bloomRows"></div>
+          </div>
+        </div>
+        
+        <!-- Plant Cards -->
+        <div class="card">
+          <h3>📋 Plant Details</h3>
+          <div id="plantCards"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav id="bottomBar">
+    <button class="navBtn active" data-v="design"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/></svg><span>Design</span></button>
+    <button class="navBtn" data-v="mockup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 14l5-5 4 4 5-5 6 6"/></svg><span>Mock</span></button>
+    <button class="navBtn" data-v="summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span>List</span></button>
+    <button class="navBtn" data-v="purchase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg><span>Buy</span></button>
+  </nav>
+
+  <nav id="sideNav">
+    <button class="sideBtn active" data-v="design"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/></svg><span>Design</span></button>
+    <button class="sideBtn" data-v="mockup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 14l5-5 4 4 5-5 6 6"/></svg><span>Mock</span></button>
+    <button class="sideBtn" data-v="summary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span>List</span></button>
+    <button class="sideBtn" data-v="purchase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg><span>Buy</span></button>
+  </nav>
+
+  <!-- Matrix Modal -->
+  <div id="matrixModal">
+    <div class="matrixContent">
+      <h3>⊞ Matrix Planting</h3>
+      <div class="matrixRow">
+        <label>Plant:</label>
+        <select id="matrixPlant">
+          <option value="">— Select Plant —</option>
+        </select>
+      </div>
+      <div class="matrixRow">
+        <label>Spacing:</label>
+        <select id="matrixSpacing">
+          <option value="6">6″ (tight)</option>
+          <option value="12" selected>12″ (1 ft)</option>
+          <option value="18">18″ (1.5 ft)</option>
+          <option value="24">24″ (2 ft)</option>
+          <option value="30">30″ (2.5 ft)</option>
+          <option value="36">36″ (3 ft)</option>
+        </select>
+      </div>
+      <div class="matrixRow">
+        <label>Pattern:</label>
+        <select id="matrixPattern">
+          <option value="rect">Rectangular Grid</option>
+          <option value="tri">Triangular (offset)</option>
+        </select>
+      </div>
+      <div class="matrixBtns">
+        <button class="cancelBtn" id="matrixCancel">Cancel</button>
+        <button class="applyBtn" id="matrixApply">Fill Garden</button>
+      </div>
+      <div class="matrixHelp">
+        Fill your garden with evenly-spaced plants. Triangular pattern creates a more natural look with offset rows.
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+  (function(){
+    const $=id=>document.getElementById(id);
+    const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+
+    const FT=40;
+    let allowOverlap=false;
+    let screenScale=1;
+
+    const PLANTS=[
+      {name:'Lanceleaf Coreopsis',acr:'COR',size:12,img:'https://static.wixstatic.com/media/94bd1f_48d31eb0d72044c5a798b2fd8960256a~mv2.png',
+       bloom:[5,6,7,8],color:'#F6C300',height:'12–24″',spread:'12–18″',soil:'Well-drained; dry–medium',light:'Full sun'},
+      {name:'Blazingstar',acr:'LIA',size:12,img:'https://static.wixstatic.com/media/94bd1f_b53a5d6e4fb042c585a424bea9356928~mv2.png',
+       bloom:[7,8,9],color:'#7A2BBF',height:'24–48″',spread:'12–18″',soil:'Well-drained; medium',light:'Full sun'},
+      {name:'Purple Lovegrass',acr:'ERA',size:18,img:'https://static.wixstatic.com/media/94bd1f_935a7b7f12d14b1c9d71cb3122f0c1c4~mv2.png',
+       bloom:[8,9,10],color:'#D071A3',height:'12–24″',spread:'18–24″',soil:'Sandy, well-drained; dry',light:'Full sun'},
+      {name:'Black-Eyed Susan',acr:'RUD',size:18,img:'https://static.wixstatic.com/media/94bd1f_e5d5fdb0948b4808afaf856a5020ff13~mv2.png',
+       bloom:[6,7,8,9],color:'#E2B100',height:'18–30″',spread:'12–18″',soil:'Average, well-drained; dry–medium',light:'Full sun to part sun'},
+      {name:'Purple Coneflower',acr:'ECH',size:18,img:'https://static.wixstatic.com/media/94bd1f_229936c40de64ae18bf2640a08e1b58a~mv2.png',
+       bloom:[6,7,8],color:'#A03C93',height:'24–36″',spread:'18–24″',soil:'Average, well-drained; dry–medium',light:'Full sun to part sun'},
+      {name:'Rough Goldenrod',acr:'SOL',size:24,img:'https://static.wixstatic.com/media/94bd1f_78ed4dc45454484f818e215a6b795305~mv2.png',
+       bloom:[8,9,10],color:'#E2C000',height:'24–48″',spread:'18–24″',soil:'Average; medium',light:'Full sun'},
+      {name:'Smooth Aster',acr:'AST',size:24,img:'https://static.wixstatic.com/media/94bd1f_6390f6e095084528ac9eb4e7e8917f2a~mv2.png',
+       bloom:[9,10],color:'#9E84C6',height:'24–36″',spread:'18–24″',soil:'Average, well-drained; dry–medium',light:'Full sun to part sun'},
+      {name:'Blunt Mountain-Mint',acr:'MMT',size:24,img:'https://static.wixstatic.com/media/94bd1f_c877a7e1e24143ce91317966460be77b~mv2.png',
+       bloom:[7,8,9],color:'#EDEDED',height:'24–36″',spread:'18–24″',soil:'Average to moist; well-drained',light:'Full sun to part sun'},
+      {name:'Butterfly Weed',acr:'ASC',size:24,img:'https://static.wixstatic.com/media/94bd1f_00213b64feff49f591a7fb83fd720fbb~mv2.png',
+       bloom:[6,7,8],color:'#F56A00',height:'18–30″',spread:'12–24″',soil:'Sandy, well-drained; dry',light:'Full sun'},
+      {name:'Toolbox',acr:'TBX',size:18,img:'',isBlank:true,
+       bloom:[],color:'#CCCCCC',height:'Custom',spread:'Custom',soil:'N/A',light:'N/A'}
+    ];
+
+    const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    const state={
+      shape:'rectangle',
+      wFt:8,
+      dFt:4,
+      selPlant:null,
+      plants:[],
+      zoom:1,
+      undo:[],
+      saved:false,
+      dirty:true,
+      polyPts:[],
+      polyDone:false,
+      polyDrawing:false,
+      trayCollapsed:false
+    };
+
+    // === RESIZE DETECTION ===
+    function checkSize(){
+      const w=window.innerWidth, h=window.innerHeight;
+      document.body.classList.toggle('wide-mode', w > h);
+      // Recalculate viewport if garden exists
+      if($('canvasArea').classList.contains('vis')){
+        setTimeout(fitViewportToGarden, 50);
+      }
+    }
+    window.addEventListener('resize',checkSize);
+    window.addEventListener('orientationchange',()=>setTimeout(checkSize,100));
+    checkSize();
+
+    // === SCREEN ZOOM ===
+    function setScreenZoom(s){
+      screenScale=clamp(s,0.5,1.5);
+      document.documentElement.style.setProperty('--scale',screenScale);
+      $('screenZoomLvl').textContent=Math.round(screenScale*100)+'%';
+    }
+    $('szIn').onclick=()=>setScreenZoom(screenScale+0.1);
+    $('szOut').onclick=()=>setScreenZoom(screenScale-0.1);
+
+    // === COLLAPSE TRAY ===
+    $('collapseBtn').onclick=()=>{
+      state.trayCollapsed=!state.trayCollapsed;
+      $('plantTray').classList.toggle('collapsed',state.trayCollapsed);
+      $('collapseBtn').textContent=state.trayCollapsed?'▲':'▼';
+    };
+
+    // === TOAST ===
+    function toast(m){
+      const t=$('toast');
+      t.textContent=m;
+      t.classList.add('show');
+      clearTimeout(t._t);
+      t._t=setTimeout(()=>t.classList.remove('show'),2000);
+    }
+
+    // === SAVE STATE ===
+    function markDirty(){
+      state.dirty=true;
+      state.saved=false;
+      $('saveStat').textContent='Not Saved';
+      $('saveStat').className='badge pend';
+    }
+    function markSaved(){
+      state.saved=true;
+      state.dirty=false;
+      $('saveStat').textContent='Saved ✓';
+      $('saveStat').className='badge done';
+    }
+
+    // === SHAPES ===
+    document.querySelectorAll('.shapeBtn').forEach(b=>{
+      b.onclick=()=>{
+        document.querySelectorAll('.shapeBtn').forEach(x=>x.classList.remove('sel'));
+        b.classList.add('sel');
+        state.shape=b.dataset.shape;
+        updateSizePreview();
+      };
+    });
+
+    // === STEPPER CONTROLS ===
+    document.querySelectorAll('.stepBtn').forEach(btn=>{
+      btn.onclick=()=>{
+        const target = $(btn.dataset.target);
+        const dir = parseInt(btn.dataset.dir);
+        const min = parseInt(target.min);
+        const max = parseInt(target.max);
+        let val = parseInt(target.value) + dir;
+        val = Math.max(min, Math.min(max, val));
+        target.value = val;
+        // Sync slider
+        const slider = btn.dataset.target === 'wIn' ? $('wSlider') : $('dSlider');
+        slider.value = val;
+        updateSizePreview();
+      };
+    });
+
+    // === SLIDERS ===
+    $('wSlider').oninput = (e) => {
+      $('wIn').value = e.target.value;
+      updateSizePreview();
+    };
+    
+    $('dSlider').oninput = (e) => {
+      $('dIn').value = e.target.value;
+      updateSizePreview();
+    };
+
+    // === SIZE PREVIEW ===
+    function updateSizePreview(){
+      const w = parseInt($('wIn').value) || 8;
+      const d = parseInt($('dIn').value) || 4;
+      let area;
+      
+      if(state.shape === 'circle'){
+        const diameter = Math.min(w, d);
+        area = Math.PI * Math.pow(diameter/2, 2);
+        $('previewSize').textContent = `⌀ ${diameter} ft`;
+      } else {
+        area = w * d;
+        $('previewSize').textContent = `${w} × ${d} ft`;
+      }
+      
+      $('previewArea').textContent = `= ${Math.round(area)} sq ft`;
+    }
+    
+    // Initialize preview
+    updateSizePreview();
+
+    // === CREATE GARDEN ===
+    $('createBtn').onclick=()=>{
+      state.wFt=clamp(+$('wIn').value||8,2,24);
+      state.dFt=clamp(+$('dIn').value||4,2,24);
+      
+      if(state.shape==='polygon'){
+        startPolygon();
+      }else{
+        buildGarden();
+      }
+      
+      $('setupPanel').classList.add('hid');
+      $('canvasArea').classList.add('vis');
+      markDirty();
+    };
+
+    // === NEW BUTTON ===
+    $('newBtn').onclick=()=>{
+      if(state.plants.length > 0 && !confirm('Start a new design? Current work will be lost.')) return;
+      // Reset state
+      state.plants = [];
+      state.undo = [];
+      state.polyPts = [];
+      state.polyDone = false;
+      state.selPlant = null;
+      state.saved = false;
+      state.dirty = true;
+      // Clear canvas
+      $('gardenCanvas').querySelectorAll('.plant, .poly-dot, .poly-measure').forEach(el => el.remove());
+      const svg = $('gardenCanvas').querySelector('.polygon-svg');
+      if(svg) svg.remove();
+      // Go back to setup
+      $('setupPanel').classList.remove('hid');
+      $('canvasArea').classList.remove('vis');
+      $('polyDoneBtn').classList.remove('vis');
+      setView('design');
+      toast('Ready for new design');
+    };
+
+    $('editBtn').onclick=()=>{
+      $('setupPanel').classList.remove('hid');
+      $('canvasArea').classList.remove('vis');
+    };
+
+    function buildGarden(){
+      const c=$('gardenCanvas'),s=$('gardenShape'),g=$('gridOver');
+      const wPx=state.wFt*FT,hPx=state.dFt*FT,pad=20;
+
+      c.style.width=(wPx+pad*2)+'px';
+      c.style.height=(hPx+pad*2)+'px';
+
+      s.style.display='block';
+      s.className=state.shape;
+      if(state.shape==='circle'){
+        const d=Math.min(wPx,hPx);
+        s.style.width=d+'px';s.style.height=d+'px';
+        s.style.left=((wPx-d)/2+pad)+'px';s.style.top=((hPx-d)/2+pad)+'px';
+      }else{
+        s.style.width=wPx+'px';s.style.height=hPx+'px';
+        s.style.left=pad+'px';s.style.top=pad+'px';
+        s.style.borderRadius='4px';
+      }
+
+      g.style.width=wPx+'px';g.style.height=hPx+'px';
+      g.style.left=pad+'px';g.style.top=pad+'px';
+
+      c.querySelectorAll('.gLabel').forEach(l=>l.style.display='block');
+      buildPlantList();
+      setZoom(1);
+      fitViewportToGarden();
+      toast('Garden ready! Select a plant below.');
+    }
+
+    // Resize viewport to fit the garden canvas with small buffer
+    function fitViewportToGarden(){
+      const canvas = $('gardenCanvas');
+      const canvasHeight = parseFloat(canvas.style.height) || 200;
+      // Add small buffer around garden
+      const targetHeight = canvasHeight + 16;
+      // Cap at 50% of available space so plants have room
+      const maxH = window.innerHeight * 0.45;
+      $('viewport').style.height = Math.min(targetHeight, maxH) + 'px';
+    }
+
+    // Recalculate on resize
+    window.addEventListener('resize', ()=>{
+      if($('canvasArea').classList.contains('vis')){
+        fitViewportToGarden();
+      }
+    });
+
+    // === POLYGON MODE - Drag-based drawing ===
+    let firstDotPlaced = false; // Track if first dot has been committed
+    
+    function startPolygon(){
+      state.polyPts=[];
+      state.polyDone=false;
+      state.polyDrawing=true;
+      firstDotPlaced = false;
+      
+      const c=$('gardenCanvas');
+      const wPx=state.wFt*FT,hPx=state.dFt*FT,pad=20;
+      
+      c.style.width=(wPx+pad*2)+'px';
+      c.style.height=(hPx+pad*2)+'px';
+      $('gardenShape').style.display='none';
+      c.querySelectorAll('.gLabel').forEach(l=>l.style.display='none');
+      
+      // Show grid for reference
+      const g=$('gridOver');
+      g.style.width=wPx+'px';
+      g.style.height=hPx+'px';
+      g.style.left=pad+'px';
+      g.style.top=pad+'px';
+      g.classList.add('vis');
+      
+      // Create SVG for polygon lines
+      let svg=c.querySelector('svg.polygon-svg');
+      if(!svg){
+        svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svg.classList.add('polygon-svg');
+        c.appendChild(svg);
+      }
+      svg.innerHTML=`
+        <polygon id="polyShape" fill="rgba(27,158,49,0.15)" stroke="#1B9E31" stroke-width="2" points=""/>
+        <line id="polyTempLine" stroke="#4CAF50" stroke-width="2" stroke-dasharray="5,5" x1="0" y1="0" x2="0" y2="0" style="display:none"/>
+      `;
+      
+      // Clear any existing dots
+      c.querySelectorAll('.poly-dot, .poly-measure').forEach(el=>el.remove());
+      
+      // Show instructions
+      $('polyInstructions').classList.remove('hid');
+      
+      // Create first draggable dot in center (moveable until user taps elsewhere)
+      createFirstPolyDot(wPx/2 + pad, hPx/2 + pad);
+      
+      // Setup canvas click to place second point
+      c.onclick = handlePolygonCanvasClick;
+      
+      buildPlantList();
+      setZoom(1);
+      fitViewportToGarden();
+    }
+
+    function createFirstPolyDot(x, y){
+      const c=$('gardenCanvas');
+      const dot=document.createElement('div');
+      dot.className='poly-dot active start';
+      dot.id='firstPolyDot';
+      dot.style.left=x+'px';
+      dot.style.top=y+'px';
+      dot.textContent='1';
+      
+      c.appendChild(dot);
+      
+      // Make it draggable (can be moved freely until second point is placed)
+      makeFirstDotDraggable(dot);
+      
+      return dot;
+    }
+    
+    function makeFirstDotDraggable(dot){
+      let dragging=false;
+      
+      const onStart=(e)=>{
+        if(firstDotPlaced) return; // Once committed, use normal dot behavior
+        e.preventDefault();
+        e.stopPropagation();
+        dragging=true;
+        dot.setPointerCapture(e.pointerId);
+        dot.style.zIndex='100';
+      };
+      
+      const onMove=(e)=>{
+        if(!dragging) return;
+        
+        const canvas=$('gardenCanvas');
+        const rect=canvas.getBoundingClientRect();
+        const x=clamp((e.clientX-rect.left)/state.zoom, 10, parseFloat(canvas.style.width)-10);
+        const y=clamp((e.clientY-rect.top)/state.zoom, 10, parseFloat(canvas.style.height)-10);
+        
+        dot.style.left=x+'px';
+        dot.style.top=y+'px';
+      };
+      
+      const onEnd=(e)=>{
+        if(!dragging) return;
+        dragging=false;
+        dot.releasePointerCapture(e.pointerId);
+        dot.style.zIndex='20';
+        // Don't commit the point yet - user can keep moving it
+      };
+      
+      dot.addEventListener('pointerdown', onStart);
+      dot.addEventListener('pointermove', onMove);
+      dot.addEventListener('pointerup', onEnd);
+      dot.addEventListener('pointercancel', onEnd);
+    }
+    
+    function handlePolygonCanvasClick(e){
+      const c=$('gardenCanvas');
+      
+      // Ignore clicks on dots
+      if(e.target.classList.contains('poly-dot')) return;
+      
+      const rect=c.getBoundingClientRect();
+      const x=clamp((e.clientX-rect.left)/state.zoom, 10, parseFloat(c.style.width)-10);
+      const y=clamp((e.clientY-rect.top)/state.zoom, 10, parseFloat(c.style.height)-10);
+      
+      if(!firstDotPlaced){
+        // First click away from first dot - commit first dot and place second
+        const firstDot = $('firstPolyDot');
+        const firstX = parseFloat(firstDot.style.left);
+        const firstY = parseFloat(firstDot.style.top);
+        
+        // Commit first point
+        state.polyPts.push({x: firstX, y: firstY});
+        firstDot.classList.remove('active');
+        firstDot.classList.add('placed');
+        firstDotPlaced = true;
+        
+        // Check if close to start point
+        const distToFirst = Math.hypot(x - firstX, y - firstY);
+        if(distToFirst < 30) return; // Too close, ignore
+        
+        // Place second point
+        state.polyPts.push({x, y});
+        createPlacedPolyDot(x, y, 2);
+        updatePolySVG();
+        
+        // Disable canvas click, enable tap-to-add
+        c.onclick = handlePolygonAddPoint;
+      }
+    }
+    
+    function handlePolygonAddPoint(e){
+      const c=$('gardenCanvas');
+      if(e.target.classList.contains('poly-dot')) return;
+      if(state.polyDone) return;
+      
+      const rect=c.getBoundingClientRect();
+      const x=clamp((e.clientX-rect.left)/state.zoom, 10, parseFloat(c.style.width)-10);
+      const y=clamp((e.clientY-rect.top)/state.zoom, 10, parseFloat(c.style.height)-10);
+      
+      // Check if close to start point to close shape (after at least 3 points)
+      if(state.polyPts.length >= 3){
+        const startPt=state.polyPts[0];
+        const distToStart=Math.hypot(x-startPt.x, y-startPt.y);
+        if(distToStart < 30){
+          finishPolygonShape();
+          return;
+        }
+      }
+      
+      // Add new point
+      state.polyPts.push({x, y});
+      createPlacedPolyDot(x, y, state.polyPts.length);
+      updatePolySVG();
+    }
+    
+    function createPlacedPolyDot(x, y, num){
+      const c=$('gardenCanvas');
+      const dot=document.createElement('div');
+      dot.className='poly-dot placed';
+      dot.style.left=x+'px';
+      dot.style.top=y+'px';
+      dot.textContent=num;
+      c.appendChild(dot);
+      
+      // Make it draggable for adjustment
+      makePlacedDotDraggable(dot, num-1);
+      
+      return dot;
+    }
+    
+    function makePlacedDotDraggable(dot, index){
+      let dragging=false;
+      
+      const onStart=(e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        dragging=true;
+        dot.setPointerCapture(e.pointerId);
+        dot.style.zIndex='100';
+      };
+      
+      const onMove=(e)=>{
+        if(!dragging) return;
+        
+        const canvas=$('gardenCanvas');
+        const rect=canvas.getBoundingClientRect();
+        const x=clamp((e.clientX-rect.left)/state.zoom, 10, parseFloat(canvas.style.width)-10);
+        const y=clamp((e.clientY-rect.top)/state.zoom, 10, parseFloat(canvas.style.height)-10);
+        
+        dot.style.left=x+'px';
+        dot.style.top=y+'px';
+        
+        // Update point in array
+        if(state.polyPts[index]){
+          state.polyPts[index].x = x;
+          state.polyPts[index].y = y;
+          updatePolySVG();
+        }
+      };
+      
+      const onEnd=(e)=>{
+        if(!dragging) return;
+        dragging=false;
+        dot.releasePointerCapture(e.pointerId);
+        dot.style.zIndex='20';
+      };
+      
+      dot.addEventListener('pointerdown', onStart);
+      dot.addEventListener('pointermove', onMove);
+      dot.addEventListener('pointerup', onEnd);
+      dot.addEventListener('pointercancel', onEnd);
+    }
+
+    function updatePolySVG(){
+      const poly=$('gardenCanvas').querySelector('#polyShape');
+      if(poly && state.polyPts.length > 0){
+        poly.setAttribute('points', state.polyPts.map(p=>`${p.x},${p.y}`).join(' '));
+      }
+      // Show done button after 3 points
+      if(state.polyPts.length >= 3){
+        $('polyDoneBtn').classList.add('vis');
+      }
+    }
+
+    function finishPolygonShape(){
+      if(state.polyPts.length < 3){
+        toast('Need at least 3 points');
+        return;
+      }
+      
+      state.polyDone=true;
+      state.polyDrawing=false;
+      
+      // Remove active dot and measurements
+      $('gardenCanvas').querySelectorAll('.poly-dot.active, .poly-measure').forEach(el=>el.remove());
+      
+      // Make placed dots smaller and non-draggable
+      $('gardenCanvas').querySelectorAll('.poly-dot.placed').forEach(dot=>{
+        dot.style.pointerEvents='none';
+        dot.style.opacity='0.7';
+      });
+      
+      // Hide done button
+      $('polyDoneBtn').classList.remove('vis');
+      
+      // Calculate area for display
+      const areaFt=calcPolyArea();
+      
+      // Enable plant placement
+      $('gardenCanvas').onclick=canvasTap;
+      
+      toast(`Shape complete! ${areaFt.toFixed(1)} sq ft. Now add plants.`);
+    }
+
+    function calcPolyArea(){
+      if(state.polyPts.length < 3) return 0;
+      let a=0;
+      const pts=state.polyPts;
+      for(let i=0; i<pts.length; i++){
+        const j=(i+1)%pts.length;
+        a += pts[i].x * pts[j].y;
+        a -= pts[j].x * pts[i].y;
+      }
+      return Math.abs(a/2)/(FT*FT);
+    }
+
+    // Done button handler
+    $('polyDoneBtn').onclick=finishPolygonShape;
+
+    function buildPlantList(){
+      const l=$('plantList');
+      l.innerHTML='';
+      PLANTS.forEach((p,i)=>{
+        const d=document.createElement('div');
+        d.className='pItem' + (p.isBlank ? ' toolbox' : '');
+        if(p.isBlank){
+          d.innerHTML=`<div class="ico" style="background:#999;color:#fff">🔧</div><div class="lbl">Blank</div>`;
+        } else {
+          d.innerHTML=`<div class="ico">${p.acr}</div><div class="lbl">${p.name.split(' ')[0]}</div>`;
+        }
+        d.onclick=()=>selPlant(i);
+        l.appendChild(d);
+      });
+    }
+
+    function selPlant(i){
+      state.selPlant=i;
+      document.querySelectorAll('.pItem').forEach((e,j)=>e.classList.toggle('sel',j===i));
+      $('hint').classList.remove('hid');
+      const p = PLANTS[i];
+      if(p.isBlank){
+        $('hint').textContent=`👆 Tap garden to place blank marker`;
+      } else {
+        $('hint').textContent=`👆 Tap garden to place ${p.name}`;
+      }
+    }
+
+    // === GRID/OVERLAP ===
+    $('gridChk').onchange=e=>{$('gridOver').classList.toggle('vis',e.target.checked);toast(e.target.checked?'Grid on':'Grid off');};
+    $('overChk').onchange=e=>{allowOverlap=e.target.checked;toast(allowOverlap?'Overlap on':'Overlap off');};
+
+    // === MATRIX PLANTING ===
+    $('matrixBtn').onclick=()=>{
+      // Populate plant dropdown (exclude Toolbox)
+      const sel = $('matrixPlant');
+      sel.innerHTML = '<option value="">— Select Plant —</option>';
+      PLANTS.forEach((p,i)=>{
+        if(p.isBlank) return;
+        sel.innerHTML += `<option value="${i}">${p.name} (${p.size}")</option>`;
+      });
+      // Show modal
+      $('matrixModal').classList.add('vis');
+    };
+    
+    $('matrixCancel').onclick=()=>{
+      $('matrixModal').classList.remove('vis');
+    };
+    
+    $('matrixApply').onclick=()=>{
+      const plantIdx = parseInt($('matrixPlant').value);
+      if(isNaN(plantIdx)){
+        toast('Please select a plant');
+        return;
+      }
+      
+      const spacingIn = parseInt($('matrixSpacing').value);
+      const pattern = $('matrixPattern').value;
+      
+      // Get garden bounds
+      const s = $('gardenShape');
+      if(!s && state.shape !== 'polygon'){
+        toast('Create a garden first');
+        return;
+      }
+      
+      const p = PLANTS[plantIdx];
+      const pxSpacing = (spacingIn/12) * FT;
+      const pxSize = (p.size/12) * FT;
+      const radius = pxSize / 2;
+      
+      let gx, gy, gw, gh;
+      
+      if(state.shape === 'polygon' && state.polyDone){
+        // Get bounding box of polygon
+        const xs = state.polyPts.map(pt=>pt.x);
+        const ys = state.polyPts.map(pt=>pt.y);
+        gx = Math.min(...xs);
+        gy = Math.min(...ys);
+        gw = Math.max(...xs) - gx;
+        gh = Math.max(...ys) - gy;
+      } else {
+        gx = parseFloat(s.style.left) || 0;
+        gy = parseFloat(s.style.top) || 0;
+        gw = parseFloat(s.style.width) || 0;
+        gh = parseFloat(s.style.height) || 0;
+      }
+      
+      // Calculate grid positions
+      const startX = gx + radius + 5;
+      const startY = gy + radius + 5;
+      const endX = gx + gw - radius - 5;
+      const endY = gy + gh - radius - 5;
+      
+      let placed = 0;
+      let rowIndex = 0;
+      const stepY = (pattern === 'tri') ? pxSpacing * Math.sqrt(3/4) : pxSpacing;
+      
+      for(let y = startY; y <= endY; y += stepY){
+        const offsetX = (pattern === 'tri' && rowIndex % 2 === 1) ? pxSpacing / 2 : 0;
+        
+        for(let x = startX + offsetX; x <= endX; x += pxSpacing){
+          // Check if inside garden
+          if(!inside(x, y, radius)) continue;
+          
+          // Check overlap if not allowed
+          if(!allowOverlap && overlap(x, y, radius, null)) continue;
+          
+          // Place plant
+          const el = document.createElement('div');
+          el.className = 'plant';
+          el.id = 'p' + Date.now() + '_' + placed;
+          el.style.width = pxSize + 'px';
+          el.style.height = pxSize + 'px';
+          el.style.left = (x - radius) + 'px';
+          el.style.top = (y - radius) + 'px';
+          el.style.borderColor = getPlantColor(plantIdx);
+          el.dataset.idx = plantIdx;
+          el.dataset.cx = x;
+          el.dataset.cy = y;
+          el.innerHTML = `<span class="acr" style="color:${getPlantColor(plantIdx)}">${p.acr}</span>`;
+          
+          $('gardenCanvas').appendChild(el);
+          state.plants.push({id:el.id, idx:plantIdx, name:p.name, cx:x, cy:y});
+          makeDrag(el);
+          makeDbl(el);
+          placed++;
+        }
+        rowIndex++;
+      }
+      
+      $('matrixModal').classList.remove('vis');
+      
+      if(placed > 0){
+        toast(`Placed ${placed} ${p.name} plants`);
+        markDirty();
+      } else {
+        toast('No space for plants - try smaller spacing');
+      }
+    };
+
+    // === CANVAS ZOOM ===
+    function setZoom(z){
+      state.zoom=clamp(z,0.5,2);
+      $('gardenCanvas').style.transform=`scale(${state.zoom})`;
+      $('zoomLvl').textContent=Math.round(state.zoom*100)+'%';
+    }
+    $('zIn').onclick=()=>setZoom(state.zoom+0.25);
+    $('zOut').onclick=()=>setZoom(state.zoom-0.25);
+    $('zFit').onclick=()=>{
+      setZoom(1);
+      $('viewport').scrollTop=0;
+      $('viewport').scrollLeft=0;
+    };
+
+    // === PLACE PLANTS ===
+    function canvasTap(e){
+      if(e.target.closest('.plant')||state.selPlant===null)return;
+      
+      const canvas = $('gardenCanvas');
+      const rect = canvas.getBoundingClientRect();
+      
+      // Get the actual rendered size vs the CSS size
+      const cssWidth = parseFloat(canvas.style.width);
+      const cssHeight = parseFloat(canvas.style.height);
+      const renderedWidth = rect.width;
+      const renderedHeight = rect.height;
+      
+      // Calculate scale factor (accounts for zoom transform)
+      const scaleX = cssWidth / renderedWidth;
+      const scaleY = cssHeight / renderedHeight;
+      
+      // Convert click position to canvas coordinates
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      
+      place(state.selPlant, x, y);
+    }
+    $('gardenCanvas').onclick=canvasTap;
+
+    function place(idx,x,y){
+      const p=PLANTS[idx],sz=(p.size/12)*FT,r=sz/2;
+      if(!inside(x,y,r)){toast('Place inside garden');return;}
+      if(!allowOverlap&&overlap(x,y,r,null)){toast('Too close to another plant');return;}
+
+      const el=document.createElement('div');
+      el.className='plant';
+      el.id='p'+Date.now();
+      el.style.width=sz+'px';el.style.height=sz+'px';
+      el.style.left=(x-r)+'px';el.style.top=(y-r)+'px';
+      el.style.borderColor=getPlantColor(idx);
+      el.dataset.idx=idx;el.dataset.cx=x;el.dataset.cy=y;
+      el.innerHTML=`<span class="acr" style="color:${getPlantColor(idx)}">${p.acr}</span>`;
+
+      $('gardenCanvas').appendChild(el);
+      state.plants.push({id:el.id,idx,name:p.name,cx:x,cy:y});
+      makeDrag(el);makeDbl(el);
+      toast(p.name+' placed');
+      state.undo.push({el,data:{id:el.id,idx,name:p.name,cx:x,cy:y}});
+      markDirty();
+    }
+
+    function getPlantColor(idx){
+      // All plants use the same dark green color
+      return '#1B5E20';
+    }
+
+    function inside(x,y,r){
+      if(state.shape==='polygon'){
+        if(!state.polyDone||state.polyPts.length<3)return false;
+        return ptInPoly({x,y},state.polyPts);
+      }
+      
+      const s=$('gardenShape');
+      const gx=parseFloat(s.style.left),gy=parseFloat(s.style.top);
+      const gw=parseFloat(s.style.width),gh=parseFloat(s.style.height);
+      const lx=x-gx,ly=y-gy,eff=r*0.8;
+      if(state.shape==='circle'){
+        const rad=gw/2;
+        return Math.hypot(lx-rad,ly-rad)+eff<=rad;
+      }
+      return lx-eff>=0&&ly-eff>=0&&lx+eff<=gw&&ly+eff<=gh;
+    }
+
+    function ptInPoly(p,vs){
+      let inside=false;
+      for(let i=0,j=vs.length-1;i<vs.length;j=i++){
+        const xi=vs[i].x,yi=vs[i].y,xj=vs[j].x,yj=vs[j].y;
+        if(((yi>p.y)!==(yj>p.y))&&(p.x<(xj-xi)*(p.y-yi)/(yj-yi+1e-9)+xi)){
+          inside=!inside;
+        }
+      }
+      return inside;
+    }
+
+    function overlap(x,y,r,exId){
+      for(const p of $('gardenCanvas').querySelectorAll('.plant')){
+        if(exId&&p.id===exId)continue;
+        const r2=parseFloat(p.style.width)/2;
+        if(Math.hypot(x-+p.dataset.cx,y-+p.dataset.cy)<r+r2)return true;
+      }
+      return false;
+    }
+
+    function getCanvasScale(){
+      const canvas = $('gardenCanvas');
+      const rect = canvas.getBoundingClientRect();
+      const cssWidth = parseFloat(canvas.style.width) || rect.width;
+      return cssWidth / rect.width;
+    }
+
+    function makeDrag(el){
+      let drag=false,sx,sy,ox,oy,scale;
+      el.onpointerdown=e=>{
+        e.stopPropagation();drag=true;
+        el.setPointerCapture(e.pointerId);
+        sx=e.clientX;sy=e.clientY;
+        ox=parseFloat(el.style.left);oy=parseFloat(el.style.top);
+        scale=getCanvasScale();
+        el.classList.add('drag');
+      };
+      el.onpointermove=e=>{
+        if(!drag)return;
+        const dx=(e.clientX-sx)*scale,dy=(e.clientY-sy)*scale;
+        el.style.left=(ox+dx)+'px';el.style.top=(oy+dy)+'px';
+        const r=parseFloat(el.style.width)/2,cx=ox+dx+r,cy=oy+dy+r;
+        const ok=inside(cx,cy,r)&&(allowOverlap||!overlap(cx,cy,r,el.id));
+        el.classList.toggle('ok',ok);el.classList.toggle('bad',!ok);
+      };
+      el.onpointerup=e=>{
+        if(!drag)return;drag=false;
+        el.releasePointerCapture(e.pointerId);
+        el.classList.remove('drag','ok','bad');
+        const r=parseFloat(el.style.width)/2;
+        const cx=parseFloat(el.style.left)+r,cy=parseFloat(el.style.top)+r;
+        if(!inside(cx,cy,r)||(!allowOverlap&&overlap(cx,cy,r,el.id))){
+          el.style.left=(+el.dataset.cx-r)+'px';el.style.top=(+el.dataset.cy-r)+'px';
+          toast('Invalid position');
+        }else{
+          el.dataset.cx=cx;el.dataset.cy=cy;
+          const ps=state.plants.find(p=>p.id===el.id);
+          if(ps){ps.cx=cx;ps.cy=cy;}
+          markDirty();
+        }
+      };
+    }
+
+    function makeDbl(el){
+      let last=0;
+      el.addEventListener('touchend',e=>{if(Date.now()-last<300){e.preventDefault();dup(el);}last=Date.now();});
+      el.ondblclick=e=>{e.preventDefault();e.stopPropagation();dup(el);};
+    }
+
+    function dup(el){
+      const idx=+el.dataset.idx,cx=+el.dataset.cx,cy=+el.dataset.cy;
+      const sz=(PLANTS[idx].size/12)*FT,r=sz/2;
+      for(const o of [{dx:sz+4,dy:0},{dx:-sz-4,dy:0},{dx:0,dy:sz+4},{dx:0,dy:-sz-4}]){
+        const nx=cx+o.dx,ny=cy+o.dy;
+        if(inside(nx,ny,r)&&(allowOverlap||!overlap(nx,ny,r,null))){place(idx,nx,ny);return;}
+      }
+      toast('No space for duplicate');
+    }
+
+    // === UNDO ===
+    $('undoBtn').onclick=()=>{
+      const a=state.undo.pop();
+      if(!a){toast('Nothing to undo');return;}
+      a.el.remove();
+      state.plants=state.plants.filter(p=>p.id!==a.data.id);
+      markDirty();
+      toast('Undone');
+    };
+
+    // === NAV ===
+    document.querySelectorAll('.navBtn,.sideBtn').forEach(b=>{
+      b.onclick=()=>setView(b.dataset.v);
+    });
+
+    function setView(v){
+      document.querySelectorAll('.navBtn,.sideBtn').forEach(b=>b.classList.toggle('active',b.dataset.v===v));
+      $('purchasePanel').classList.toggle('vis',v==='purchase');
+      $('mockupPanel').classList.toggle('vis',v==='mockup');
+      $('summaryPanel').classList.toggle('vis',v==='summary');
+      if(v==='design'&&$('setupPanel').classList.contains('hid'))$('canvasArea').classList.add('vis');
+      else if(v!=='design')$('canvasArea').classList.remove('vis');
+      if(v==='mockup')buildMock();
+      if(v==='summary')buildSum();
+      if(v==='purchase')generatePreview();
+      
+      // Hide design tools when not on design tab
+      $('designTools').style.display = (v==='design') ? 'flex' : 'none';
+    }
+
+    // === COUNTS ===
+    function counts(){
+      const c={};
+      state.plants.forEach(p=>{
+        if(p.name === 'Toolbox') return; // Exclude toolbox from purchase counts
+        c[p.name]=(c[p.name]||0)+1;
+      });
+      return c;
+    }
+    function area(){
+      if(state.shape==='polygon' && state.polyPts.length>=3){
+        return calcPolyArea();
+      }
+      return state.shape==='circle'?Math.PI*Math.pow(Math.min(state.wFt,state.dFt)/2,2):state.wFt*state.dFt;
+    }
+
+    // === SAVE ===
+    function savePNG(){
+      const canvasArea = $('canvasArea');
+      const gardenCanvas = $('gardenCanvas');
+      const c = counts();
+      const a = area();
+      
+      // Check if canvas area is hidden
+      const wasHidden = !canvasArea.classList.contains('vis');
+      
+      if(wasHidden){
+        canvasArea.style.visibility = 'visible';
+        canvasArea.style.opacity = '0';
+        canvasArea.style.pointerEvents = 'none';
+        canvasArea.classList.add('vis');
+      }
+      
+      toast('Generating plan...');
+      
+      // Give more time for rendering
+      setTimeout(()=>{
+        html2canvas(gardenCanvas, {
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          scale: 2,
+          logging: false,
+          allowTaint: false,
+          onclone: function(clonedDoc) {
+            const clonedCanvas = clonedDoc.getElementById('gardenCanvas');
+            if(clonedCanvas) {
+              clonedCanvas.style.display = 'block';
+              clonedCanvas.style.visibility = 'visible';
+              clonedCanvas.style.opacity = '1';
+            }
+          }
+        }).then(gardenImg => {
+          // Restore canvas visibility
+          if(wasHidden){
+            canvasArea.classList.remove('vis');
+            canvasArea.style.visibility = '';
+            canvasArea.style.opacity = '';
+            canvasArea.style.pointerEvents = '';
+          }
+          
+          // Build comprehensive plan HTML
+          const planContainer = document.createElement('div');
+          planContainer.style.cssText = 'position:fixed;left:-9999px;top:0;width:600px;padding:20px;background:#fff;font-family:system-ui,-apple-system,sans-serif;color:#222;';
+          
+          // Logo header
+          planContainer.innerHTML = `
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <img src="https://static.wixstatic.com/media/94bd1f_221f30cd2cd24559a6075cbc06f95f0a~mv2.png" 
+                   style="height:40px" crossorigin="anonymous" alt="Ecoplantia">
+              <h2 style="margin:0;color:#1B9E31">Garden Plan</h2>
+            </div>
+          `;
+          
+          // Garden snapshot
+          const snapshot = document.createElement('img');
+          snapshot.src = gardenImg.toDataURL('image/png');
+          snapshot.style.cssText = 'width:100%;border:2px solid #1B9E31;border-radius:8px;margin-bottom:16px;';
+          planContainer.appendChild(snapshot);
+          
+          // Summary section
+          const summaryHTML = `
+            <div style="background:#E8F5E9;padding:12px;border-radius:8px;margin-bottom:16px;">
+              <h3 style="margin:0 0 8px;color:#1B9E31">📊 Garden Summary</h3>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;">
+                <div><b>Area:</b> ${Math.round(a)} sq ft</div>
+                <div><b>Dimensions:</b> ${state.wFt}×${state.dFt} ft</div>
+                <div><b>Total Plants:</b> ${state.plants.length}</div>
+                <div><b>Species:</b> ${Object.keys(c).length}</div>
+              </div>
+              <div style="margin-top:10px;font-size:13px;">
+                <b>Plants:</b><br>
+                ${Object.entries(c).map(([n,cnt])=>`• ${n}: ${cnt}`).join('<br>')}
+              </div>
+            </div>
+          `;
+          planContainer.innerHTML += summaryHTML;
+          
+          // Bloom chart
+          let bloomHTML = `
+            <div style="background:#fff;padding:12px;border:1px solid #eee;border-radius:8px;margin-bottom:16px;">
+              <h3 style="margin:0 0 10px;color:#1B9E31">🌸 Bloom Periods</h3>
+              <div style="display:grid;grid-template-columns:100px repeat(12,1fr);gap:3px;font-size:10px;margin-bottom:6px;">
+                <div></div>${MONTHS.map(m=>`<div style="text-align:center">${m}</div>`).join('')}
+              </div>
+          `;
+          
+          Object.entries(c).forEach(([n,cnt])=>{
+            const p = PLANTS.find(x=>x.name===n); if(!p) return;
+            let cells = '';
+            for(let m=1; m<=12; m++){
+              const active = p.bloom && p.bloom.includes(m);
+              cells += `<div style="height:16px;border-radius:3px;border:1px solid #ddd;${active?'background:'+p.color+';border-color:#aaa;':'background:#f5f5f5;'}"></div>`;
+            }
+            bloomHTML += `
+              <div style="display:grid;grid-template-columns:100px repeat(12,1fr);gap:3px;margin-bottom:4px;align-items:center;">
+                <div style="font-size:11px;font-weight:bold;white-space:nowrap;overflow:hidden;">${p.acr} (×${cnt})</div>
+                ${cells}
+              </div>
+            `;
+          });
+          bloomHTML += '</div>';
+          planContainer.innerHTML += bloomHTML;
+          
+          // Plant cards
+          let cardsHTML = `
+            <div style="margin-bottom:16px;">
+              <h3 style="margin:0 0 10px;color:#1B9E31">📋 Plant Details</h3>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+          `;
+          
+          Object.entries(c).forEach(([n,cnt])=>{
+            const p = PLANTS.find(x=>x.name===n); if(!p) return;
+            cardsHTML += `
+              <div style="background:#fff;border:1px solid #eee;border-radius:8px;padding:10px;box-shadow:0 2px 6px rgba(0,0,0,0.05);">
+                <img src="${p.img}" style="width:100%;height:70px;object-fit:contain;background:#fafafa;border-radius:4px;" crossorigin="anonymous">
+                <div style="font-weight:bold;font-size:11px;color:#1B9E31;margin-top:6px;">${p.name}</div>
+                <div style="font-size:9px;color:#666;margin-top:4px;line-height:1.4;">
+                  <div><b>Qty:</b> ${cnt}</div>
+                  <div><b>Height:</b> ${p.height||'—'}</div>
+                  <div><b>Spread:</b> ${p.spread||p.size+'"'}</div>
+                  <div><b>Light:</b> ${p.light||'—'}</div>
+                </div>
+              </div>
+            `;
+          });
+          cardsHTML += '</div></div>';
+          planContainer.innerHTML += cardsHTML;
+          
+          // Footer
+          planContainer.innerHTML += `
+            <div style="text-align:center;font-size:10px;color:#999;padding-top:10px;border-top:1px solid #eee;">
+              Generated ${new Date().toLocaleDateString()} • ecoplantia.com
+            </div>
+          `;
+          
+          document.body.appendChild(planContainer);
+          
+          // Wait for images to load then capture
+          setTimeout(()=>{
+            html2canvas(planContainer, {
+              backgroundColor: '#ffffff',
+              useCORS: true,
+              scale: 2,
+              logging: false
+            }).then(finalCanvas => {
+              finalCanvas.toBlob(function(blob) {
+                planContainer.remove();
+                
+                if (!blob) {
+                  toast('Save failed - no data');
+                  return;
+                }
+                
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = 'ecoplantia-garden-plan.png';
+                link.href = url;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                
+                setTimeout(() => {
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }, 100);
+                
+                markSaved();
+                toast('Plan saved as PNG!');
+              }, 'image/png', 1.0);
+            }).catch(err => {
+              planContainer.remove();
+              console.error('Save error:', err);
+              toast('Save failed - try again');
+            });
+          }, 300);
+          
+        }).catch(err => {
+          if(wasHidden){
+            canvasArea.classList.remove('vis');
+            canvasArea.style.visibility = '';
+            canvasArea.style.opacity = '';
+            canvasArea.style.pointerEvents = '';
+          }
+          console.error('Save error:', err);
+          toast('Save failed - try again');
+        });
+      }, 150);
+    }
+    $('saveBtn').onclick=savePNG;
+    $('savePlanBtn').onclick=savePNG;
+
+    function generatePreview(){
+      const canvasArea = $('canvasArea');
+      const gardenCanvas = $('gardenCanvas');
+      
+      // Check if canvas area is hidden
+      const wasHidden = !canvasArea.classList.contains('vis');
+      
+      if(wasHidden){
+        // Make it visible but transparent
+        canvasArea.style.visibility = 'visible';
+        canvasArea.style.opacity = '0';
+        canvasArea.style.pointerEvents = 'none';
+        canvasArea.classList.add('vis');
+      }
+      
+      // Give time for rendering
+      setTimeout(()=>{
+        html2canvas(gardenCanvas,{
+          backgroundColor:'#fff',
+          useCORS:true,
+          scale:2,
+          logging:false,
+          onclone: function(clonedDoc) {
+            const clonedCanvas = clonedDoc.getElementById('gardenCanvas');
+            if(clonedCanvas) {
+              clonedCanvas.style.display = 'block';
+              clonedCanvas.style.visibility = 'visible';
+              clonedCanvas.style.opacity = '1';
+            }
+          }
+        }).then(c=>{
+          $('prevImg').src=c.toDataURL('image/png');
+          
+          // Restore visibility
+          if(wasHidden){
+            canvasArea.classList.remove('vis');
+            canvasArea.style.visibility = '';
+            canvasArea.style.opacity = '';
+            canvasArea.style.pointerEvents = '';
+          }
+        }).catch(err=>{
+          console.error('Preview error:', err);
+          if(wasHidden){
+            canvasArea.classList.remove('vis');
+            canvasArea.style.visibility = '';
+            canvasArea.style.opacity = '';
+            canvasArea.style.pointerEvents = '';
+          }
+        });
+      }, 150);
+    }
+
+    $('purchaseBtn').onclick=()=>{
+      const c=counts();
+      if(!Object.keys(c).length){
+        toast('No plants in design');
+        return;
+      }
+      toast('Preparing your order...');
+      
+      // Generate PNG of the garden design
+      const canvasArea = $('canvasArea');
+      const gardenCanvas = $('gardenCanvas');
+      const wasHidden = !canvasArea.classList.contains('vis');
+      
+      if(wasHidden){
+        canvasArea.style.visibility = 'visible';
+        canvasArea.style.opacity = '0';
+        canvasArea.style.pointerEvents = 'none';
+        canvasArea.classList.add('vis');
+      }
+      
+      setTimeout(()=>{
+        html2canvas(gardenCanvas, {
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          scale: 2,
+          logging: false
+        }).then(canvas => {
+          if(wasHidden){
+            canvasArea.classList.remove('vis');
+            canvasArea.style.visibility = '';
+            canvasArea.style.opacity = '';
+            canvasArea.style.pointerEvents = '';
+          }
+          
+          // Get PNG as base64
+          const pngData = canvas.toDataURL('image/png');
+          const sq = Math.ceil(area());
+          const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(c))));
+          
+          console.log('[designer] PNG generated, size:', pngData.length);
+          
+          // Method 1: Send to parent via postMessage (for iframe scenario)
+          try {
+            window.parent.postMessage({
+              type: 'gardenPurchase',
+              png: pngData,
+              counts: c,
+              sqft: sq
+            }, '*');
+            console.log('[designer] Sent PNG to parent via postMessage');
+          } catch(e) {
+            console.warn('[designer] postMessage failed:', e);
+          }
+          
+          // Method 2: Also try sessionStorage (in case same origin)
+          try {
+            sessionStorage.setItem('eco_plan_png', pngData);
+            sessionStorage.setItem('eco_plan_counts', JSON.stringify(c));
+            sessionStorage.setItem('eco_plan_sqft', sq.toString());
+            console.log('[designer] Stored in sessionStorage');
+          } catch(e) {
+            console.warn('[designer] sessionStorage failed:', e);
+          }
+          
+          // Small delay to let postMessage process, then redirect
+          setTimeout(() => {
+            let origin='https://www.ecoplantia.com';
+            try{origin=new URL(document.referrer).origin||origin;}catch(e){}
+            window.top.location.href=origin+'/cart-loader?counts='+b64+'&sqft='+sq+'&hasPng=1';
+          }, 200);
+          
+        }).catch(err=>{
+          console.error('[designer] PNG generation failed:', err);
+          if(wasHidden){
+            canvasArea.classList.remove('vis');
+            canvasArea.style.visibility = '';
+            canvasArea.style.opacity = '';
+            canvasArea.style.pointerEvents = '';
+          }
+          // Still redirect even if PNG fails
+          const b64=btoa(unescape(encodeURIComponent(JSON.stringify(c))));
+          const sq=Math.ceil(area());
+          let origin='https://www.ecoplantia.com';
+          try{origin=new URL(document.referrer).origin||origin;}catch(e){}
+          window.top.location.href=origin+'/cart-loader?counts='+b64+'&sqft='+sq;
+        });
+      }, 150);
+    };
+
+    // === MOCKUP ===
+    let selectedMockPlant = null;
+    let mockPlantScales = {}; // Track scale for each plant
+    let mockMoveMode = 'single'; // 'single', 'all', or 'bg'
+    let bgTransform = { x: 0, y: 0, scale: 1 }; // Background position/scale
+    
+    // Mode switcher - set up after function definitions
+    function setupMockupModes(){
+      document.querySelectorAll('.modeBtn').forEach(btn => {
+        btn.onclick = () => {
+          document.querySelectorAll('.modeBtn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          mockMoveMode = btn.dataset.mode;
+          
+          // Update UI based on mode
+          $('mockBg').classList.toggle('draggable', mockMoveMode === 'bg');
+          $('mockPlants').classList.toggle('move-all', mockMoveMode === 'all');
+          $('bgZoomBtns').classList.toggle('vis', mockMoveMode === 'bg');
+          
+          // Hide plant controls when not in single mode
+          if(mockMoveMode !== 'single'){
+            deselectMockPlant();
+          }
+          
+          // Show mode hint
+          const hints = {
+            'single': '🌱 Tap a plant to select & resize',
+            'all': '🌿 Drag to move all plants together',
+            'bg': '🖼️ Drag to move • Use +/- to zoom'
+          };
+          toast(hints[mockMoveMode]);
+        };
+      });
+      
+      // Background zoom buttons
+      $('bgZoomIn').onclick = () => {
+        bgTransform.scale = clamp(bgTransform.scale * 1.15, 0.2, 5);
+        applyBgTransform();
+        updateBgZoomLvl();
+      };
+      $('bgZoomOut').onclick = () => {
+        bgTransform.scale = clamp(bgTransform.scale * 0.85, 0.2, 5);
+        applyBgTransform();
+        updateBgZoomLvl();
+      };
+    }
+    
+    function updateBgZoomLvl(){
+      const lvl = $('bgZoomLvl');
+      if(lvl) lvl.textContent = Math.round(bgTransform.scale * 100) + '%';
+    }
+    
+    function buildMock(){
+      const con=$('mockPlants');con.innerHTML='';
+      const ar=$('mockArea'),h=ar.offsetHeight,w=ar.offsetWidth;
+      const pad=20,gD=state.dFt*FT,gW=state.wFt*FT;
+      
+      // Hide controls when rebuilding
+      $('plantControls').classList.remove('vis');
+      selectedMockPlant = null;
+      
+      // Position plants on a small mound - only ~15% of height for vertical spread
+      const groundLevel = h * 0.75;
+      const moundHeight = h * 0.12;
+      
+      const sorted=[...state.plants].sort((a,b)=>a.cy-b.cy);
+      sorted.forEach((p, index)=>{
+        const pl=PLANTS[p.idx];
+        
+        const rY=clamp((p.cy-pad)/gD,0,1);
+        const yBase = groundLevel - moundHeight + (rY * moundHeight);
+        
+        // Base size with saved scale
+        const baseSize = 55 + rY * 15;
+        const scale = mockPlantScales[p.id] || 1;
+        const sz = baseSize * scale;
+        
+        const yP = yBase - sz;
+        const rX=clamp((p.cx-pad)/gW,0,1);
+        const xP=w*0.1+rX*w*0.8-sz/2;
+        
+        const el=document.createElement('div');
+        el.className='mPlant';
+        el.dataset.id = p.id;
+        el.dataset.name = pl.name;
+        el.dataset.acr = pl.acr;
+        el.dataset.baseSize = baseSize;
+        el.dataset.scale = scale;
+        el.style.cssText=`width:${sz}px;height:${sz}px;left:${xP}px;top:${yP}px;z-index:${Math.floor(rY*100)+10}`;
+        el.innerHTML=`<img src="${pl.img}" alt="${pl.name}">`;
+        con.appendChild(el);
+        
+        // Draggable plant
+        let dr=false,sx,sy,ox,oy,moved=false;
+        el.onpointerdown=e=>{
+          if(mockMoveMode === 'bg') return; // Don't drag plants in bg mode
+          
+          dr=true;
+          moved=false;
+          el.setPointerCapture(e.pointerId);
+          sx=e.clientX;sy=e.clientY;
+          ox=parseFloat(el.style.left);oy=parseFloat(el.style.top);
+          
+          // For 'all' mode, store all plants' positions
+          if(mockMoveMode === 'all'){
+            con.querySelectorAll('.mPlant').forEach(p => {
+              p.dataset.startX = parseFloat(p.style.left);
+              p.dataset.startY = parseFloat(p.style.top);
+            });
+          }
+        };
+        el.onpointermove=e=>{
+          if(!dr)return;
+          const dx=e.clientX-sx, dy=e.clientY-sy;
+          if(Math.abs(dx)>3||Math.abs(dy)>3) moved=true;
+          
+          if(mockMoveMode === 'all'){
+            // Move ALL plants
+            con.querySelectorAll('.mPlant').forEach(p => {
+              const startX = parseFloat(p.dataset.startX) || 0;
+              const startY = parseFloat(p.dataset.startY) || 0;
+              p.style.left = (startX + dx) + 'px';
+              p.style.top = (startY + dy) + 'px';
+            });
+          } else {
+            // Move just this plant
+            el.style.left=(ox+dx)+'px';
+            el.style.top=(oy+dy)+'px';
+          }
+        };
+        el.onpointerup=(e)=>{
+          dr=false;
+          // If didn't move much and in single mode, treat as tap for selection
+          if(!moved && mockMoveMode === 'single'){
+            selectMockPlant(el);
+          }
+        };
+        
+        // Tap to select (single mode only)
+        el.onclick=(e)=>{
+          e.stopPropagation();
+          if(mockMoveMode === 'single'){
+            selectMockPlant(el);
+          }
+        };
+      });
+      
+      // Update mode indicators
+      $('mockBg').classList.toggle('draggable', mockMoveMode === 'bg');
+      $('mockPlants').classList.toggle('move-all', mockMoveMode === 'all');
+      
+      // Click on background to deselect
+      $('mockArea').onclick=(e)=>{
+        if(e.target===$('mockArea')||e.target===$('mockBg')||e.target===$('mockPlants')){
+          deselectMockPlant();
+        }
+      };
+    }
+    
+    // Background drag & zoom
+    (function setupBgDrag(){
+      const bg = $('mockBg');
+      let dragging = false, startX, startY, origX, origY;
+      
+      bg.onpointerdown = e => {
+        if(mockMoveMode !== 'bg') return;
+        dragging = true;
+        bg.setPointerCapture(e.pointerId);
+        startX = e.clientX;
+        startY = e.clientY;
+        origX = bgTransform.x;
+        origY = bgTransform.y;
+      };
+      
+      bg.onpointermove = e => {
+        if(!dragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        bgTransform.x = origX + dx;
+        bgTransform.y = origY + dy;
+        applyBgTransform();
+      };
+      
+      bg.onpointerup = () => { dragging = false; };
+      bg.onpointercancel = () => { dragging = false; };
+      
+      // Pinch/wheel zoom for background
+      $('mockArea').addEventListener('wheel', e => {
+        if(mockMoveMode !== 'bg') return;
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.95 : 1.05;
+        bgTransform.scale = clamp(bgTransform.scale * delta, 0.2, 5);
+        applyBgTransform();
+        updateBgZoomLvl();
+      }, { passive: false });
+    })();
+    
+    function applyBgTransform(){
+      $('mockBg').style.backgroundPosition = `calc(50% + ${bgTransform.x}px) calc(50% + ${bgTransform.y}px)`;
+      $('mockBg').style.backgroundSize = `${bgTransform.scale * 100}%`;
+    }
+    
+    function selectMockPlant(el){
+      if(mockMoveMode !== 'single') return;
+      
+      // Deselect previous
+      if(selectedMockPlant){
+        selectedMockPlant.classList.remove('selected');
+      }
+      
+      // Select new
+      selectedMockPlant = el;
+      el.classList.add('selected');
+      
+      // Show controls
+      const controls = $('plantControls');
+      controls.classList.add('vis');
+      
+      // Update control labels
+      $('selectedPlantName').textContent = el.dataset.name;
+      $('sizeLabel').textContent = Math.round(parseFloat(el.dataset.scale)*100)+'%';
+    }
+    
+    function deselectMockPlant(){
+      if(selectedMockPlant){
+        selectedMockPlant.classList.remove('selected');
+        selectedMockPlant = null;
+      }
+      $('plantControls').classList.remove('vis');
+    }
+    
+    function resizeMockPlant(delta){
+      if(!selectedMockPlant) return;
+      
+      let scale = parseFloat(selectedMockPlant.dataset.scale) || 1;
+      scale = clamp(scale + delta, 0.3, 2.5);
+      
+      const baseSize = parseFloat(selectedMockPlant.dataset.baseSize);
+      const newSize = baseSize * scale;
+      
+      // Update element
+      selectedMockPlant.dataset.scale = scale;
+      selectedMockPlant.style.width = newSize + 'px';
+      selectedMockPlant.style.height = newSize + 'px';
+      
+      // Save scale for this plant
+      mockPlantScales[selectedMockPlant.dataset.id] = scale;
+      
+      // Update label
+      $('sizeLabel').textContent = Math.round(scale*100)+'%';
+    }
+    
+    function deleteMockPlant(){
+      if(!selectedMockPlant) return;
+      selectedMockPlant.remove();
+      delete mockPlantScales[selectedMockPlant.dataset.id];
+      deselectMockPlant();
+      toast('Plant removed from mockup');
+    }
+    
+    // Control button handlers
+    $('shrinkBtn').onclick=()=>resizeMockPlant(-0.15);
+    $('growBtn').onclick=()=>resizeMockPlant(0.15);
+    $('deletePlantBtn').onclick=deleteMockPlant;
+    $('closeControlsBtn').onclick=deselectMockPlant;
+
+    $('photoBtn').onclick=()=>$('photoIn').click();
+    $('photoIn').onchange=e=>{
+      const f=e.target.files[0];if(!f)return;
+      const r=new FileReader();
+      r.onload=ev=>{
+        $('mockBg').style.backgroundImage=`url(${ev.target.result})`;
+        // Reset background transform
+        bgTransform = { x: 0, y: 0, scale: 1 };
+        applyBgTransform();
+        toast('Photo set! Use 🖼️ mode to adjust');
+      };
+      r.readAsDataURL(f);
+    };
+    $('refreshBtn').onclick=()=>{buildMock();toast('Refreshed');};
+    
+    // Select All button - switches to "all" mode
+    $('selectAllBtn').onclick=()=>{
+      document.querySelectorAll('.modeBtn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.modeBtn[data-mode="all"]').classList.add('active');
+      mockMoveMode = 'all';
+      $('mockBg').classList.remove('draggable');
+      $('mockPlants').classList.add('move-all');
+      $('bgZoomBtns').classList.remove('vis');
+      deselectMockPlant();
+      toast('All plants selected - drag any to move all together');
+    };
+    
+    // Add plant to mockup button
+    $('addMockPlantBtn').onclick=()=>{
+      // Show plant picker modal
+      showAddMockPlantModal();
+    };
+    
+    function showAddMockPlantModal(){
+      // Create modal if doesn't exist
+      let modal = $('addMockPlantModal');
+      if(!modal){
+        modal = document.createElement('div');
+        modal.id = 'addMockPlantModal';
+        modal.className = 'mockModal';
+        modal.innerHTML = `
+          <div class="mockModalContent">
+            <h3>Add Plant to Mockup</h3>
+            <div class="mockPlantGrid" id="mockPlantGrid"></div>
+            <button class="mainBtn" onclick="$('addMockPlantModal').classList.remove('vis')">Cancel</button>
+          </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Add styles if not present
+        if(!document.getElementById('mockModalStyles')){
+          const style = document.createElement('style');
+          style.id = 'mockModalStyles';
+          style.textContent = `
+            .mockModal { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:1000; }
+            .mockModal.vis { display:flex; }
+            .mockModalContent { background:#fff; border-radius:12px; padding:20px; max-width:340px; width:90%; max-height:80vh; overflow-y:auto; }
+            .mockModalContent h3 { margin:0 0 15px; color:#1B5E20; }
+            .mockPlantGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:15px; }
+            .mockPlantOption { border:2px solid #E8F5E9; border-radius:8px; padding:8px; text-align:center; cursor:pointer; transition:all 0.2s; }
+            .mockPlantOption:hover { border-color:#4CAF50; background:#F1F8E9; }
+            .mockPlantOption img { width:50px; height:50px; object-fit:contain; }
+            .mockPlantOption .name { font-size:10px; color:#333; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+          `;
+          document.head.appendChild(style);
+        }
+      }
+      
+      // Populate with plants
+      const grid = $('mockPlantGrid');
+      grid.innerHTML = '';
+      PLANTS.forEach((p, idx) => {
+        if(p.isBlank) return; // Skip toolbox
+        const opt = document.createElement('div');
+        opt.className = 'mockPlantOption';
+        opt.innerHTML = `<img src="${p.img}" alt="${p.name}"><div class="name">${p.acr}</div>`;
+        opt.onclick = () => {
+          addPlantToMockup(idx);
+          modal.classList.remove('vis');
+        };
+        grid.appendChild(opt);
+      });
+      
+      modal.classList.add('vis');
+    }
+    
+    function addPlantToMockup(plantIdx){
+      const p = PLANTS[plantIdx];
+      const mockPlants = $('mockPlants');
+      const mockArea = $('mockArea');
+      
+      // Create new plant element
+      const el = document.createElement('div');
+      el.className = 'mPlant';
+      el.dataset.idx = plantIdx;
+      
+      // Position in center of mockup area
+      const areaRect = mockArea.getBoundingClientRect();
+      const x = areaRect.width / 2;
+      const y = areaRect.height / 2;
+      
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.width = '60px';
+      el.style.height = '60px';
+      el.style.backgroundImage = `url(${p.img})`;
+      el.style.backgroundSize = 'contain';
+      el.style.backgroundRepeat = 'no-repeat';
+      el.style.backgroundPosition = 'center';
+      
+      mockPlants.appendChild(el);
+      
+      // Make it interactive
+      setupMockPlantInteraction(el);
+      
+      toast(`Added ${p.name} to mockup`);
+    }
+    
+    function setupMockPlantInteraction(el){
+      let startX, startY, origLeft, origTop;
+      
+      el.onpointerdown = (e) => {
+        if(mockMoveMode === 'bg') return;
+        e.preventDefault();
+        el.setPointerCapture(e.pointerId);
+        
+        startX = e.clientX;
+        startY = e.clientY;
+        origLeft = parseFloat(el.style.left) || 0;
+        origTop = parseFloat(el.style.top) || 0;
+        
+        if(mockMoveMode === 'single'){
+          selectMockPlant(el);
+        }
+      };
+      
+      el.onpointermove = (e) => {
+        if(!el.hasPointerCapture(e.pointerId)) return;
+        
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        if(mockMoveMode === 'all'){
+          // Move all plants
+          $('mockPlants').querySelectorAll('.mPlant').forEach(plant => {
+            const pLeft = parseFloat(plant.dataset.origLeft || plant.style.left) || 0;
+            const pTop = parseFloat(plant.dataset.origTop || plant.style.top) || 0;
+            if(!plant.dataset.origLeft){
+              plant.dataset.origLeft = pLeft;
+              plant.dataset.origTop = pTop;
+            }
+            plant.style.left = (parseFloat(plant.dataset.origLeft) + dx) + 'px';
+            plant.style.top = (parseFloat(plant.dataset.origTop) + dy) + 'px';
+          });
+        } else {
+          el.style.left = (origLeft + dx) + 'px';
+          el.style.top = (origTop + dy) + 'px';
+        }
+      };
+      
+      el.onpointerup = (e) => {
+        el.releasePointerCapture(e.pointerId);
+        // Clear stored positions
+        $('mockPlants').querySelectorAll('.mPlant').forEach(p => {
+          delete p.dataset.origLeft;
+          delete p.dataset.origTop;
+        });
+      };
+    }
+    
+    $('saveMockBtn').onclick=()=>{
+      // Temporarily remove draggable outline for save
+      $('mockBg').classList.remove('draggable');
+      $('mockPlants').classList.remove('move-all');
+      
+      html2canvas($('mockArea'),{useCORS:true}).then(c=>{
+        const l=document.createElement('a');l.download='ecoplantia-mockup.png';l.href=c.toDataURL('image/png');l.click();
+        toast('Mockup saved');
+        
+        // Restore mode indicators
+        $('mockBg').classList.toggle('draggable', mockMoveMode === 'bg');
+        $('mockPlants').classList.toggle('move-all', mockMoveMode === 'all');
+      });
+    };
+
+    // ============================================
+    // === AR MODE ===
+    // ============================================
+    
+    // AR Mode links to hosted page (blob URLs don't get camera permissions on iOS)
+    $('arModeBtn').onclick = () => {
+      // Get the plants from the current design
+      const designPlants = state.plants.map(p => ({
+        idx: p.idx,
+        relX: p.cx / (state.wFt * FT),
+        relY: p.cy / (state.dFt * FT)
+      }));
+      
+      // Encode plants as URL hash
+      const hash = encodeURIComponent(JSON.stringify(designPlants));
+      
+      // Link to GitHub hosted AR page
+      const arUrl = 'https://mdgrateful.github.io/ar-garden.html#' + hash;
+      
+      window.open(arUrl, '_blank');
+      
+      if (designPlants.length > 0) {
+        toast('Opening AR with ' + designPlants.length + ' plants...');
+      } else {
+        toast('Opening AR mode...');
+      }
+    };
+
+    // === SUMMARY ===
+    function buildSum(){
+      const c=counts(),a=area();
+      
+      // Stats grid
+      $('statGrid').innerHTML=`
+        <div class="statBox"><div class="val">${Math.round(a)}</div><div class="lbl">Sq Ft</div></div>
+        <div class="statBox"><div class="val">${state.plants.length}</div><div class="lbl">Plants</div></div>
+        <div class="statBox"><div class="val">${Object.keys(c).length}</div><div class="lbl">Species</div></div>
+        <div class="statBox"><div class="val">${state.wFt}×${state.dFt}</div><div class="lbl">Feet</div></div>
+      `;
+      
+      // Plant counts
+      const l=$('plantSum');l.innerHTML='';
+      Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([n,cnt])=>{
+        const p=PLANTS.find(x=>x.name===n);if(!p)return;
+        l.innerHTML+=`<div class="pRow"><div class="dot">${p.acr}</div><div class="info"><div class="nm">${n}</div><div class="sz">${p.size}" spread</div></div><div class="cnt">×${cnt}</div></div>`;
+      });
+      if(!Object.keys(c).length)l.innerHTML='<div style="padding:10px;text-align:center;color:#999">No plants yet</div>';
+      
+      // Bloom chart header
+      $('bloomHeader').innerHTML = '<span></span>' + MONTHS.map(m=>`<span>${m}</span>`).join('');
+      
+      // Bloom rows
+      const bloomRows = $('bloomRows');
+      bloomRows.innerHTML = '';
+      
+      Object.entries(c).sort((a,b)=>b[1]-a[1]).forEach(([n,cnt])=>{
+        const p=PLANTS.find(x=>x.name===n);if(!p)return;
+        
+        let cells = '';
+        for(let m=1; m<=12; m++){
+          const active = p.bloom && p.bloom.includes(m);
+          cells += `<div class="bloomCell${active?' active':''}" style="${active?'background:'+p.color:''}"></div>`;
+        }
+        
+        bloomRows.innerHTML += `
+          <div class="bloomRow">
+            <div class="bloomLabel">${p.acr} (×${cnt})</div>
+            ${cells}
+          </div>
+        `;
+      });
+      
+      if(!Object.keys(c).length){
+        bloomRows.innerHTML='<div style="padding:10px;text-align:center;color:#999;font-size:9px">Add plants to see bloom periods</div>';
+      }
+      
+      // Plant cards
+      const cards = $('plantCards');
+      cards.innerHTML = '';
+      
+      // Remove any existing scroll hint
+      const existingHint = cards.parentElement.querySelector('.scrollHint');
+      if(existingHint) existingHint.remove();
+      
+      const plantEntries = Object.entries(c).sort((a,b)=>b[1]-a[1]);
+      
+      if(plantEntries.length > 2){
+        // Add scroll hint before cards
+        const hint = document.createElement('div');
+        hint.className = 'scrollHint';
+        hint.textContent = `← Swipe to see all ${plantEntries.length} plants →`;
+        cards.parentElement.insertBefore(hint, cards);
+      }
+      
+      plantEntries.forEach(([n,cnt])=>{
+        const p=PLANTS.find(x=>x.name===n);if(!p)return;
+        
+        const card = document.createElement('div');
+        card.className = 'plantCard';
+        card.innerHTML = `
+          <img src="${p.img}" alt="${p.name}">
+          <div class="pcName">${p.name} (×${cnt})</div>
+          <div class="pcFacts">
+            <div><b>Ht:</b> ${p.height||'—'}</div>
+            <div><b>Spread:</b> ${p.spread||p.size+'"'}</div>
+            <div><b>Light:</b> ${p.light||'—'}</div>
+            <div><b>Soil:</b> ${p.soil||'—'}</div>
+          </div>
+        `;
+        cards.appendChild(card);
+      });
+      
+      if(!plantEntries.length){
+        cards.innerHTML='<div style="padding:10px;text-align:center;color:#999;font-size:9px">Add plants to see details</div>';
+      }
+    }
+    
+    // Initialize mockup mode buttons
+    setupMockupModes();
+  })();
+  </script>
+</body>
+</html>
