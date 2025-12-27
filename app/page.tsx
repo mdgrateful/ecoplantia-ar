@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+import dynamic from 'next/dynamic';
+
+const BoundaryEditor = dynamic(() => import('@/components/BoundaryEditor'), { ssr: false });
 
 type Step = 'upload' | 'boundary' | 'existing' | 'preferences' | 'generating' | 'results' | 'checkout';
 
@@ -420,7 +423,7 @@ export default function Home() {
         )}
 
         {/* Step Content */}
-        <div className="card" style={{ maxWidth: '800px', margin: '0 auto' }}>
+        <div className="card" style={{ maxWidth: '900px', margin: '0 auto' }}>
 
           {/* UPLOAD STEP */}
           {step === 'upload' && (
