@@ -46,6 +46,7 @@ export default function Home() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+
   // Step 1: Create job and upload photo
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,49 +69,67 @@ export default function Home() {
       }
 
       const jobId = createData.jobId;
+      const uploadUrl = createData.uploadUrl;
 
-      // Convert file to base64 and create object URL for preview
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        const photoUrl = URL.createObjectURL(file);
+      // Upload photo to Supabase Storage using signed URL
+      if (uploadUrl) {
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file,
+        });
 
-        // Get image dimensions
-        const img = new Image();
-        img.onload = async () => {
-          // Mark photo as complete
-          const photoRes = await fetch('/api/design/photo-complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jobId,
-              photoUrl: base64, // In production, upload to Supabase Storage
-              width: img.width,
-              height: img.height,
-            }),
-          });
+        if (!uploadRes.ok) {
+          console.warn('Storage upload failed, continuing with local preview');
+        }
+      }
 
-          const photoData = await photoRes.json();
-          if (!photoData.success) {
-            throw new Error(photoData.error || 'Failed to upload photo');
-          }
+      // Create local preview URL
+      const localPreviewUrl = URL.createObjectURL(file);
 
-          setDesign((prev) => ({
-            ...prev,
+      // Get image dimensions
+      const img = new Image();
+      img.onload = async () => {
+        // Build the public URL for the uploaded photo
+        const storagePath = `photos/${jobId}/original.jpg`;
+        const publicPhotoUrl = `https://ccjniauqjowpsvibljsz.supabase.co/storage/v1/object/public/design-photos/${storagePath}`;
+
+        // Mark photo as complete with storage URL
+        const photoRes = await fetch('/api/design/photo-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             jobId,
-            photoUrl,
-          }));
-          setStep('boundary');
-          setLoading(false);
-        };
-        img.src = photoUrl;
+            photoUrl: publicPhotoUrl,
+            width: img.width,
+            height: img.height,
+          }),
+        });
+
+        const photoData = await photoRes.json();
+        if (!photoData.success) {
+          throw new Error(photoData.error || 'Failed to save photo info');
+        }
+
+        setDesign((prev) => ({
+          ...prev,
+          jobId,
+          photoUrl: localPreviewUrl,
+        }));
+        setStep('boundary');
+        setLoading(false);
       };
-      reader.readAsDataURL(file);
+      img.onerror = () => {
+        setError('Failed to load image');
+        setLoading(false);
+      };
+      img.src = localPreviewUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
       setLoading(false);
     }
   };
+
 
   // Step 2: Set boundary (simplified - using default rectangle for now)
   const handleSetBoundary = async (lengthFt: number, widthFt: number) => {
