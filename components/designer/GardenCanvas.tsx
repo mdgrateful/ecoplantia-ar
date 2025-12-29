@@ -130,7 +130,7 @@ export default function GardenCanvas({ onPlantSelect, onPlantDeselect, selectedP
     }
 
     // Deselect garden if clicking outside
-    if (state.gardenSelected && !e.target?.closest?.(`.${styles.gardenCanvas}`)) {
+    if (state.gardenSelected && !(e.target as HTMLElement)?.closest?.(`.${styles.gardenCanvas}`)) {
       dispatch({ type: 'TOGGLE_GARDEN_SELECTED', selected: false });
     }
   };

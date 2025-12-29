@@ -110,7 +110,7 @@ export default function PlantDetailPanel({ plantIdx, onClose }: PlantDetailPanel
         {/* Description */}
         <div className={styles.plantDetailSection}>
           <h4>About</h4>
-          <p>{plant.desc}</p>
+          <p>{plant.about}</p>
         </div>
 
         {/* Care */}
