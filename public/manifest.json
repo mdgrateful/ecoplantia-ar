@@ -1,0 +1,27 @@
+{
+  "name": "Ecoplantia Garden Designer",
+  "short_name": "Ecoplantia",
+  "description": "Design your native plant garden with AI-powered tools",
+  "start_url": "/designer",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1B9E31",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "utilities"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+const fs = require('fs');
+
+const newContent = `import { NextRequest, NextResponse } from 'next/server';
 import OpenAI, { toFile } from 'openai';
 import { supabaseAdmin } from '@/lib/supabase';
 
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
 
       // If jobId provided, save to database
       if (jobId) {
-        const renderUrl = url || `data:image/png;base64,${b64}`;
+        const renderUrl = url || \`data:image/png;base64,\${b64}\`;
         await supabaseAdmin
           .from('design_jobs')
           .update({ beauty_render_url: renderUrl })
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
     // If mockupBase64 is provided, use it directly
     if (mockupBase64) {
       // Convert base64 to buffer
-      const base64Data = mockupBase64.replace(/^data:image\/\w+;base64,/, '');
+      const base64Data = mockupBase64.replace(/^data:image\\/\\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
 
       const prompt = PRESETS[preset] || PRESETS.ecoplantia_landscape_beauty;
@@ -133,7 +135,7 @@ export async function POST(request: NextRequest) {
 
       // Save to job if jobId provided
       if (jobId) {
-        const renderUrl = url || `data:image/png;base64,${b64}`;
+        const renderUrl = url || \`data:image/png;base64,\${b64}\`;
         await supabaseAdmin
           .from('design_jobs')
           .update({ beauty_render_url: renderUrl })
@@ -201,7 +203,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const renderUrl = url || `data:image/png;base64,${b64}`;
+    const renderUrl = url || \`data:image/png;base64,\${b64}\`;
 
     // Save render URL to job
     await supabaseAdmin
@@ -223,3 +225,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+`;
+
+fs.writeFileSync('app/api/design/beauty-render/route.ts', newContent);
+console.log('Beauty render route updated successfully!');

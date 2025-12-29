@@ -1,4 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+const fs = require('fs');
+
+const newContent = `import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { BoundaryRequest, BoundaryResponse } from '@/lib/types';
 
@@ -82,3 +84,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+`;
+
+fs.writeFileSync('app/api/design/boundary/route.ts', newContent);
+console.log('Boundary API fixed to accept pre-calculated pxPerIn!');

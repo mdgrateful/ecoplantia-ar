@@ -1,4 +1,6 @@
-'use client';
+const fs = require('fs');
+
+const newContent = `'use client';
 
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
@@ -96,8 +98,8 @@ export default function Home() {
       const img = new Image();
       img.onload = async () => {
         // Build the public URL for the uploaded photo
-        const storagePath = `photos/${jobId}/original.jpg`;
-        const publicPhotoUrl = `https://ccjniauqjowpsvibljsz.supabase.co/storage/v1/object/public/design-photos/${storagePath}`;
+        const storagePath = \`photos/\${jobId}/original.jpg\`;
+        const publicPhotoUrl = \`https://ccjniauqjowpsvibljsz.supabase.co/storage/v1/object/public/design-photos/\${storagePath}\`;
 
         // Mark photo as complete with storage URL
         const photoRes = await fetch('/api/design/photo-complete', {
@@ -320,7 +322,7 @@ export default function Home() {
         throw new Error(data.error || 'Failed to generate render');
       }
 
-      const renderUrl = data.renderUrl || (data.b64_png ? `data:image/png;base64,${data.b64_png}` : null);
+      const renderUrl = data.renderUrl || (data.b64_png ? \`data:image/png;base64,\${data.b64_png}\` : null);
       setDesign((prev) => ({ ...prev, beautyRenderUrl: renderUrl }));
       setStep('results');
     } catch (err) {
@@ -391,29 +393,6 @@ export default function Home() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
             Photo-to-Rollout Native Garden Designer
           </p>
-
-          {/* Designer Quick Link */}
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a
-              href="/designer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 24px',
-                background: 'linear-gradient(135deg, #1B9E31 0%, #43A047 100%)',
-                color: 'white',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontWeight: 'bold',
-                boxShadow: '0 4px 12px rgba(27, 158, 49, 0.3)',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-              }}
-            >
-              <span style={{ fontSize: '20px' }}>🎨</span>
-              <span>Open Full Designer</span>
-            </a>
-          </div>
         </header>
 
         {/* Progress Steps */}
@@ -689,16 +668,16 @@ export default function Home() {
                   <h3 style={{ marginBottom: '10px' }}>Quote</h3>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
                     <span>Plants ({Object.values(design.counts).reduce((a: number, b: number) => a + b, 0)} total)</span>
-                    <span>${design.quote.plants.reduce((sum: number, p: any) => sum + p.lineTotal, 0).toFixed(2)}</span>
+                    <span>\${design.quote.plants.reduce((sum: number, p: any) => sum + p.lineTotal, 0).toFixed(2)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <span>{design.quote.sheet.name}</span>
-                    <span>${design.quote.sheet.lineTotal.toFixed(2)}</span>
+                    <span>\${design.quote.sheet.lineTotal.toFixed(2)}</span>
                   </div>
                   <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid var(--border)' }} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '18px' }}>
                     <span>Total</span>
-                    <span>${design.quote.total.toFixed(2)}</span>
+                    <span>\${design.quote.total.toFixed(2)}</span>
                   </div>
                 </div>
               )}
@@ -740,12 +719,16 @@ export default function Home() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style jsx>{\`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
-      `}</style>
+      \`}</style>
     </main>
   );
 }
+`;
+
+fs.writeFileSync('app/page.tsx', newContent);
+console.log('Page updated with GardenDesigner integration!');
