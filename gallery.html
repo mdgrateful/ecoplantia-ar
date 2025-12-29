@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ecoplantia - My Gardens</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .card { background: #333; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
+        .card:hover { border-color: #4CAF50; transform: translateY(-5px); }
+        .card h3 { margin: 10px 0; font-size: 14px; }
+        .card .date { font-size: 10px; color: #888; }
+        .nav { margin-bottom: 20px; }
+        .btn-back { color: #4CAF50; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="nav"><a href="index.html" class="btn-back">← Back to Camera</a></div>
+    <h1>My Saved Gardens</h1>
+    <div id="galleryGrid" class="grid">Loading your designs...</div>
+
+    <script>
+        const SUPABASE_URL = 'https://ccjniauqjowpsvibljsz.supabase.co';
+        const SUPABASE_KEY = 'YOUR_ANON_PUBLIC_KEY';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function loadGallery() {
+            const { data, error } = await supabase.from('garden_designs').select('*').order('created_at', { ascending: false });
+            const grid = document.getElementById('galleryGrid');
+            grid.innerHTML = '';
+
+            if (data.length === 0) { grid.innerHTML = "No designs saved yet!"; return; }
+
+            data.forEach(design => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                // We show how many plants are in this design
+                const plantCount = design.layout_data.length;
+                const date = new Date(design.created_at).toLocaleDateString();
+                
+                card.innerHTML = `
+                    <div style="font-size: 40px;">🌿</div>
+                    <h3>Garden #${design.id}</h3>
+                    <div class="date">${plantCount} plants • ${date}</div>
+                `;
+                // When clicked, go back to AR and pass the ID
+                card.onclick = () => window.location.href = `ar-garden.html?designId=${design.id}`;
+                grid.appendChild(card);
+            });
+        }
+        loadGallery();
+    </script>
+</body>
+</html>
