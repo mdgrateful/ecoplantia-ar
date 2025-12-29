@@ -1,15 +1,10 @@
- name: Optimize 3D Models
+  name: Optimize 3D Models
 
   on:
     push:
       paths:
-        - 'models-raw/**/*.glb'
-        - 'models-raw/**/*.gltf'
+        - "models-raw/**/*.glb"
     workflow_dispatch:
-      inputs:
-        target_polys:
-          description: 'Target polygon count'
-          default: '20000'
 
   jobs:
     optimize:
@@ -18,9 +13,7 @@
         - uses: actions/checkout@v4
 
         - name: Install Blender
-          run: |
-            sudo apt-get update
-            sudo apt-get install -y blender
+          run: sudo apt-get update && sudo apt-get install -y blender
 
         - name: Optimize models
           run: |
@@ -28,7 +21,7 @@
             for file in models-raw/*.glb; do
               if [ -f "$file" ]; then
                 name=$(basename "$file")
-                blender --background --python scripts/blender-decimate.py -- "$file" "public/models/$name" ${{ github.event.inputs.target_polys || '20000' }}
+                blender --background --python scripts/blender-decimate.py -- "$file" "public/models/$name" 20000
               fi
             done
 
@@ -36,6 +29,6 @@
           run: |
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/models/*.glb
-            git diff --staged --quiet || git commit -m "🌿 Auto-optimized 3D models"
-            git push
+            git add public/models/*.glb || true
+            git diff --staged --quiet || git commit -m "Auto-optimized 3D models"
+            git push || true
