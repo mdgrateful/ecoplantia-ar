@@ -1,0 +1,88 @@
+name: Optimize 3D Models
+
+on:
+  push:
+    paths:
+      - 'models-raw/**/*.glb'
+      - 'models-raw/**/*.gltf'
+      - 'models-raw/**/*.fbx'
+  workflow_dispatch:
+    inputs:
+      target_polys:
+        description: 'Target polygon count'
+        default: '20000'
+        required: false
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender
+
+      - name: Find and optimize models
+        run: |
+          TARGET_POLYS=${{ github.event.inputs.target_polys || '20000' }}
+
+          mkdir -p public/models
+
+          echo "=== Processing 3D Models ==="
+          echo "Target polygons: $TARGET_POLYS"
+
+          for file in models-raw/*.glb models-raw/*.gltf models-raw/*.fbx; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              name="${filename%.*}"
+              output="public/models/${name}.glb"
+
+              echo ""
+              echo "Processing: $filename"
+
+              blender --background --python scripts/blender-decimate.py -- "$file" "$output" "$TARGET_POLYS"
+
+              if [ -f "$output" ]; then
+                size=$(du -h "$output" | cut -f1)
+                echo "Created: $output ($size)"
+              fi
+            fi
+          done
+
+          echo ""
+          echo "=== Optimization Complete ==="
+          ls -lh public/models/
+
+      - name: Commit optimized models
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          git add public/models/*.glb
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🌿 Auto-optimize 3D models to ${TARGET_POLYS:-20000} polys"
+            git push
+          fi
+
+      - name: Summary
+        run: |
+          echo "## 3D Model Optimization Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Model | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
+          for file in public/models/*.glb; do
+            if [ -f "$file" ]; then
+              name=$(basename "$file")
+              size=$(du -h "$file" | cut -f1)
+              echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done

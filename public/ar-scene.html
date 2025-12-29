@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Ecoplantia AR Garden</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #1B5E20, #2E7D32);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 22px; }
+    .backBtn {
+      position: absolute;
+      left: 15px;
+      top: 20px;
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .content {
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .gardenPreview {
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      background: linear-gradient(180deg, #87CEEB 0%, #E8F5E9 50%, #8B4513 100%);
+    }
+    .gardenPreview canvas {
+      width: 100%;
+      display: block;
+    }
+    .status {
+      text-align: center;
+      padding: 30px;
+      color: #666;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #E8F5E9;
+      border-top-color: #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .arButton {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+    }
+    .info {
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <button class="backBtn" onclick="goBack()">←</button>
+  <h1>🌳 Your Garden in AR</h1>
+</div>
+
+<div class="content">
+  <div class="card">
+    <div class="gardenPreview" id="preview">
+      <div class="status" id="loading">
+        <div class="spinner"></div>
+        <div>Creating your garden view...</div>
+      </div>
+    </div>
+
+    <a rel="ar" id="arLink" href="#" class="arButton" style="display:none;">
+      📱 View Garden in AR
+      <img id="arImg" style="display:none;">
+    </a>
+
+    <p class="info">Your garden as you would see it standing in front of it</p>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
+
+// Plant data - sizes are spread in inches
+const PLANTS = [
+  { name: 'Lanceleaf Coreopsis', acr: 'COR', size: 12, img: '/plants/COR.png' },
+  { name: 'Blazingstar', acr: 'LIA', size: 12, img: '/plants/LIA.png' },
+  { name: 'Purple Lovegrass', acr: 'ERA', size: 18, img: '/plants/ERA.png' },
+  { name: 'Black-Eyed Susan', acr: 'RUD', size: 18, img: '/plants/RUD.png' },
+  { name: 'Purple Coneflower', acr: 'ECH', size: 18, img: '/plants/ECH.png' },
+  { name: 'Rough Goldenrod', acr: 'SOL', size: 24, img: '/plants/SOL.png' },
+  { name: 'Smooth Aster', acr: 'AST', size: 24, img: '/plants/AST.png' },
+  { name: 'Blunt Mountain-Mint', acr: 'MMT', size: 24, img: '/plants/MMT.png' },
+  { name: 'Butterfly Weed', acr: 'ASC', size: 24, img: '/plants/ASC.png' }
+];
+
+// Parse design from URL
+let designPlants = [];
+try {
+  const hash = window.location.hash.slice(1);
+  if (hash) designPlants = JSON.parse(decodeURIComponent(hash));
+} catch(e) {}
+
+window.goBack = function() {
+  if (window.opener) window.close();
+  else history.back();
+};
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function createGardenView() {
+  if (designPlants.length === 0) {
+    document.getElementById('loading').innerHTML = '<p>No plants in design. Add plants first!</p>';
+    return;
+  }
+
+  // Canvas dimensions - human eye view aspect ratio
+  const canvas = document.createElement('canvas');
+  const width = 1200;
+  const height = 800;
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  // Draw sky gradient (top portion)
+  const skyGradient = ctx.createLinearGradient(0, 0, 0, height * 0.4);
+  skyGradient.addColorStop(0, '#87CEEB');
+  skyGradient.addColorStop(1, '#B0E0E6');
+  ctx.fillStyle = skyGradient;
+  ctx.fillRect(0, 0, width, height * 0.4);
+
+  // Draw ground/garden bed gradient
+  const groundGradient = ctx.createLinearGradient(0, height * 0.4, 0, height);
+  groundGradient.addColorStop(0, '#90EE90');  // Light green at horizon
+  groundGradient.addColorStop(0.3, '#228B22'); // Forest green
+  groundGradient.addColorStop(1, '#8B4513');   // Brown soil at bottom
+  ctx.fillStyle = groundGradient;
+  ctx.fillRect(0, height * 0.4, width, height * 0.6);
+
+  // Load plant images
+  const imageCache = {};
+  for (const dp of designPlants) {
+    const plant = PLANTS[dp.idx];
+    if (plant && !imageCache[dp.idx]) {
+      try {
+        imageCache[dp.idx] = await loadImage(plant.img);
+      } catch(e) {
+        console.warn('Failed to load', plant?.name);
+      }
+    }
+  }
+
+  // Sort plants by Y position (back to front for proper layering)
+  // Lower relY = further back = draw first
+  const sorted = [...designPlants].sort((a, b) => (a.relY ?? 0.5) - (b.relY ?? 0.5));
+
+  // Ground line (horizon) - where plants "stand"
+  const horizonY = height * 0.45;
+  const groundBottom = height * 0.95;
+
+  // Calculate X bounds for proper spacing
+  let minX = 1, maxX = 0;
+  sorted.forEach(dp => {
+    minX = Math.min(minX, dp.relX ?? 0.5);
+    maxX = Math.max(maxX, dp.relX ?? 0.5);
+  });
+
+  // Add padding so plants aren't at edges
+  const xPadding = 0.1;
+  const xRange = Math.max(maxX - minX, 0.2); // Minimum range to prevent division issues
+
+  // Draw each plant with perspective
+  for (const dp of sorted) {
+    const plant = PLANTS[dp.idx];
+    const img = imageCache[dp.idx];
+    if (!plant || !img) continue;
+
+    const relX = dp.relX ?? 0.5;
+    const relY = dp.relY ?? 0.5;
+
+    // Perspective: plants further back (lower relY) are:
+    // - Higher on screen (closer to horizon)
+    // - Smaller
+    // - More faded (optional)
+
+    // Y position: relY 0 = at horizon, relY 1 = at bottom of screen
+    const perspectiveY = horizonY + (relY * (groundBottom - horizonY));
+
+    // Scale based on distance (relY): closer plants are bigger
+    // relY 0 = far (small), relY 1 = close (big)
+    const baseScale = 0.3 + (relY * 0.7); // 0.3 to 1.0
+    const plantHeight = (plant.size / 12) * 150 * baseScale; // Base height scaled
+    const plantWidth = plantHeight * (img.width / img.height);
+
+    // X position: spread across canvas width
+    const normalizedX = (relX - minX) / xRange;
+    const x = (width * xPadding) + (normalizedX * width * (1 - 2 * xPadding));
+
+    // Draw plant - bottom of plant at perspectiveY
+    const drawX = x - plantWidth / 2;
+    const drawY = perspectiveY - plantHeight;
+
+    ctx.drawImage(img, drawX, drawY, plantWidth, plantHeight);
+  }
+
+  // Show preview
+  const previewEl = document.getElementById('preview');
+  previewEl.innerHTML = '';
+  const previewCanvas = document.createElement('canvas');
+  previewCanvas.width = 600;
+  previewCanvas.height = 400;
+  const pctx = previewCanvas.getContext('2d');
+  pctx.drawImage(canvas, 0, 0, 600, 400);
+  previewEl.appendChild(previewCanvas);
+
+  // Create USDZ - vertical plane like a picture/poster
+  const scene = new THREE.Scene();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.flipY = true;
+  texture.colorSpace = THREE.SRGBColorSpace;
+
+  // Vertical plane (like a framed picture) - 1.5m wide, 1m tall
+  const geometry = new THREE.PlaneGeometry(1.5, 1);
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    side: THREE.DoubleSide,
+    roughness: 1,
+    metalness: 0
+  });
+
+  const plane = new THREE.Mesh(geometry, material);
+  // Stand upright, slightly tilted back like viewing a garden
+  plane.position.y = 0.5; // Center at 0.5m height
+  scene.add(plane);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+  // Export to USDZ
+  const exporter = new USDZExporter();
+  const usdzData = await exporter.parse(scene);
+  const blob = new Blob([usdzData], { type: 'model/vnd.usdz+zip' });
+  const url = URL.createObjectURL(blob);
+
+  // Setup AR link
+  const arLink = document.getElementById('arLink');
+  arLink.href = url;
+  arLink.style.display = 'block';
+  document.getElementById('loading').style.display = 'none';
+}
+
+createGardenView().catch(err => {
+  console.error(err);
+  document.getElementById('loading').innerHTML = '<p>Error: ' + err.message + '</p>';
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Ecoplantia 3D Garden</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #1B5E20, #2E7D32);
+      color: white;
+      padding: 15px 20px;
+      text-align: center;
+      position: relative;
+      z-index: 100;
+    }
+    .header h1 { font-size: 20px; }
+    .backBtn {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    /* Full screen AR mode */
+    .ar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      display: none;
+    }
+    .ar-container canvas {
+      width: 100%;
+      height: 100%;
+    }
+    .ar-ui {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      z-index: 1001;
+    }
+    .ar-btn {
+      padding: 15px 25px;
+      border-radius: 30px;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .ar-btn.primary { background: #4CAF50; color: white; }
+    .ar-btn.secondary { background: white; color: #333; }
+    .ar-instructions {
+      position: absolute;
+      top: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 12px;
+      font-size: 14px;
+      text-align: center;
+      z-index: 1001;
+    }
+
+    /* Normal content */
+    .content {
+      padding: 15px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .preview {
+      width: 100%;
+      height: 300px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #87CEEB 0%, #90EE90 100%);
+      margin-bottom: 15px;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .status {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #E8F5E9;
+      border-top-color: #4CAF50;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .statusText { font-size: 14px; margin-bottom: 5px; }
+    .progress { font-size: 12px; color: #999; }
+    .arButton {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .arButton:disabled { background: #ccc; }
+    .arButton.secondary { background: linear-gradient(135deg, #2196F3, #1976D2); }
+    .plantList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .plantChip {
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 11px;
+    }
+    .plantChip.ready { background: #E8F5E9; color: #2E7D32; }
+    .plantChip.pending { background: #FFF3E0; color: #E65100; }
+    .error {
+      background: #FFEBEE;
+      border: 1px solid #EF5350;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #C62828;
+    }
+    .controls-hint {
+      text-align: center;
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .not-supported {
+      background: #FFF3E0;
+      border: 1px solid #FFB74D;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: #E65100;
+    }
+  </style>
+</head>
+<body>
+
+<!-- AR Full Screen Container -->
+<div class="ar-container" id="arContainer">
+  <div class="ar-instructions" id="arInstructions">
+    Point your camera at the ground and tap to place your garden
+  </div>
+  <div class="ar-ui">
+    <button class="ar-btn secondary" onclick="exitAR()">Exit AR</button>
+    <button class="ar-btn primary" id="placeBtn" onclick="placeGarden()">Place Garden</button>
+  </div>
+</div>
+
+<div class="header">
+  <button class="backBtn" onclick="goBack()">←</button>
+  <h1>🌿 3D Garden</h1>
+</div>
+
+<div class="content" id="mainContent">
+  <div class="card">
+    <h3 style="font-size:13px; color:#1B5E20; margin-bottom:8px;">Your Plants</h3>
+    <div class="plantList" id="plantList"></div>
+  </div>
+
+  <div class="card">
+    <div class="preview" id="preview">
+      <div class="status" id="loading">
+        <div class="spinner"></div>
+        <div class="statusText" id="statusText">Loading 3D models...</div>
+        <div class="progress" id="progressText"></div>
+      </div>
+    </div>
+
+    <div class="controls-hint" id="controlsHint" style="display:none;">
+      Drag to rotate • Pinch to zoom
+    </div>
+
+    
+    <button id="arButton" class="arButton" style="display:none;" onclick="startAR()">
+      📱 Launch AR Camera
+    </button>
+
+    <div id="errorBox" class="error" style="display:none;"></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { USDZExporter } from 'three/addons/exporters/USDZExporter.js';
+
+const MODEL_BASE = '/models';
+
+const PLANTS = [
+  { name: 'Coreopsis', acr: 'COR', size: 12, has3d: true },
+  { name: 'Blazingstar', acr: 'LIA', size: 12, has3d: true },
+  { name: 'Lovegrass', acr: 'ERA', size: 18, has3d: false },
+  { name: 'Black-Eyed Susan', acr: 'RUD', size: 18, has3d: true },
+  { name: 'Coneflower', acr: 'ECH', size: 18, has3d: true },
+  { name: 'Goldenrod', acr: 'SOL', size: 24, has3d: false },
+  { name: 'Aster', acr: 'AST', size: 24, has3d: false },
+  { name: 'Mountain-Mint', acr: 'MMT', size: 24, has3d: false },
+  { name: 'Butterfly Weed', acr: 'ASC', size: 24, has3d: false }
+];
+
+let designPlants = [];
+try {
+  const hash = window.location.hash.slice(1);
+  if (hash) designPlants = JSON.parse(decodeURIComponent(hash));
+} catch(e) {}
+
+// Three.js globals
+let scene, camera, renderer, controls;
+let gardenGroup = null;
+let arSession = null;
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+let reticle = null;
+let gardenPlaced = false;
+
+window.goBack = function() {
+  if (arSession) {
+    arSession.end();
+  }
+  if (window.opener) window.close();
+  else history.back();
+};
+
+// Build plant list UI
+const listEl = document.getElementById('plantList');
+const plantCounts = {};
+designPlants.forEach(dp => {
+  const plant = PLANTS[dp.idx];
+  if (plant) {
+    if (!plantCounts[dp.idx]) plantCounts[dp.idx] = { plant, count: 0 };
+    plantCounts[dp.idx].count++;
+  }
+});
+
+Object.values(plantCounts).forEach(({ plant, count }) => {
+  const chip = document.createElement('span');
+  chip.className = 'plantChip ' + (plant.has3d ? 'ready' : 'pending');
+  chip.textContent = `${plant.name} (${count})` + (plant.has3d ? ' ✓' : '');
+  listEl.appendChild(chip);
+});
+
+const has3dPlants = designPlants.some(dp => PLANTS[dp.idx]?.has3d);
+
+// Detect iOS
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Check WebXR support (Android)
+async function checkWebXRSupport() {
+  if ('xr' in navigator) {
+    try {
+      return await navigator.xr.isSessionSupported('immersive-ar');
+    } catch(e) {
+      return false;
+    }
+  }
+  return false;
+}
+
+// Start AR - routes to iOS or Android method
+window.startAR = async function() {
+  if (isIOS) {
+    await startIOSAR();
+  } else {
+    await startWebXRAR();
+  }
+};
+
+// iOS AR using USDZ + AR Quick Look (Apple's native AR)
+async function startIOSAR() {
+  if (!gardenGroup) {
+    alert('Garden not ready yet');
+    return;
+  }
+
+  const btn = document.getElementById('arButton');
+  btn.textContent = 'Creating AR...';
+  btn.disabled = true;
+
+  try {
+    // Create a clean scene for export (no background)
+    const exportScene = new THREE.Scene();
+
+    // Clone garden group
+    const gardenClone = gardenGroup.clone();
+    exportScene.add(gardenClone);
+
+    // Add lighting for USDZ
+    exportScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 10, 5);
+    exportScene.add(light);
+
+    // Export to USDZ
+    const exporter = new USDZExporter();
+    const usdzData = await exporter.parse(exportScene);
+    const blob = new Blob([usdzData], { type: 'model/vnd.usdz+zip' });
+    const url = URL.createObjectURL(blob);
+
+    console.log('USDZ size:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+
+    // Create and trigger AR Quick Look
+    const link = document.createElement('a');
+    link.rel = 'ar';
+    link.href = url;
+
+    // Required: hidden image inside the link
+    const img = document.createElement('img');
+    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    link.appendChild(img);
+
+    document.body.appendChild(link);
+    link.click();
+
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 100);
+
+    btn.textContent = '📱 Launch AR Camera';
+    btn.disabled = false;
+  } catch(err) {
+    console.error('iOS AR failed:', err);
+    alert('AR export failed: ' + err.message);
+    btn.textContent = '📱 Launch AR Camera';
+    btn.disabled = false;
+  }
+}
+
+// Android AR using WebXR
+async function startWebXRAR() {
+  const supported = await checkWebXRSupport();
+  if (!supported) {
+    // Fallback to iOS method for unsupported Android
+    await startIOSAR();
+    return;
+  }
+
+  try {
+    arSession = await navigator.xr.requestSession('immersive-ar', {
+      requiredFeatures: ['hit-test'],
+      optionalFeatures: ['dom-overlay'],
+      domOverlay: { root: document.getElementById('arContainer') }
+    });
+
+    document.getElementById('arContainer').style.display = 'block';
+    document.getElementById('mainContent').style.display = 'none';
+    document.querySelector('.header').style.display = 'none';
+
+    renderer.xr.enabled = true;
+    renderer.xr.setReferenceSpaceType('local');
+    await renderer.xr.setSession(arSession);
+
+    // Create placement reticle
+    const reticleGeometry = new THREE.RingGeometry(0.1, 0.12, 32);
+    reticleGeometry.rotateX(-Math.PI / 2);
+    reticle = new THREE.Mesh(reticleGeometry, new THREE.MeshBasicMaterial({ color: 0x4CAF50 }));
+    reticle.visible = false;
+    scene.add(reticle);
+
+    gardenPlaced = false;
+    gardenGroup.visible = false;
+    document.getElementById('arInstructions').style.display = 'block';
+
+    arSession.addEventListener('end', () => {
+      arSession = null;
+      document.getElementById('arContainer').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      document.querySelector('.header').style.display = 'block';
+      if (reticle) reticle.visible = false;
+      gardenGroup.visible = true;
+      gardenGroup.position.set(0, 0, 0);
+    });
+
+    renderer.setAnimationLoop(renderAR);
+  } catch(err) {
+    console.error('WebXR failed:', err);
+    alert('Could not start AR: ' + err.message);
+  }
+}
+
+window.exitAR = function() {
+  if (arSession) {
+    arSession.end();
+  }
+};
+
+window.placeGarden = function() {
+  if (reticle && reticle.visible) {
+    gardenGroup.position.copy(reticle.position);
+    gardenGroup.visible = true;
+    gardenPlaced = true;
+    document.getElementById('arInstructions').textContent = 'Garden placed! Move around to explore.';
+    setTimeout(() => {
+      document.getElementById('arInstructions').style.display = 'none';
+    }, 2000);
+  }
+};
+
+function renderAR(timestamp, frame) {
+  if (!frame) return;
+
+  const referenceSpace = renderer.xr.getReferenceSpace();
+  const session = renderer.xr.getSession();
+
+  // Hit testing for placement
+  if (!gardenPlaced) {
+    if (!hitTestSourceRequested) {
+      session.requestReferenceSpace('viewer').then((viewerSpace) => {
+        session.requestHitTestSource({ space: viewerSpace }).then((source) => {
+          hitTestSource = source;
+        });
+      });
+      hitTestSourceRequested = true;
+    }
+
+    if (hitTestSource) {
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
+      if (hitTestResults.length > 0) {
+        const hit = hitTestResults[0];
+        const pose = hit.getPose(referenceSpace);
+        if (pose) {
+          reticle.visible = true;
+          reticle.position.setFromMatrixPosition(new THREE.Matrix4().fromArray(pose.transform.matrix));
+        }
+      } else {
+        reticle.visible = false;
+      }
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+
+async function init() {
+  if (!has3dPlants) {
+    document.getElementById('loading').innerHTML = `
+      <p style="color:#666;">No 3D models in your design yet.</p>
+      <p style="color:#999; font-size:12px; margin-top:10px;">Available: Coreopsis, Blazingstar, Black-Eyed Susan, Coneflower</p>
+    `;
+    return;
+  }
+
+  const statusText = document.getElementById('statusText');
+  const progressText = document.getElementById('progressText');
+
+  // Setup scene
+  scene = new THREE.Scene();
+
+  // Lighting
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(5, 10, 5);
+  scene.add(dirLight);
+  scene.add(new THREE.HemisphereLight(0x87CEEB, 0x228B22, 0.4));
+
+  // Garden group to hold all plants
+  gardenGroup = new THREE.Group();
+  scene.add(gardenGroup);
+
+  // Load models
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://unpkg.com/three@0.160.0/examples/jsm/libs/draco/');
+  const loader = new GLTFLoader();
+  loader.setDRACOLoader(dracoLoader);
+
+  const plantsWithModels = designPlants.filter(dp => PLANTS[dp.idx]?.has3d);
+  const uniqueModels = [...new Set(plantsWithModels.map(dp => dp.idx))];
+  const modelCache = {};
+
+  // Calculate bounds
+  let minX = 1, maxX = 0, minY = 1, maxY = 0;
+  designPlants.forEach(dp => {
+    minX = Math.min(minX, dp.relX ?? 0.5);
+    maxX = Math.max(maxX, dp.relX ?? 0.5);
+    minY = Math.min(minY, dp.relY ?? 0.5);
+    maxY = Math.max(maxY, dp.relY ?? 0.5);
+  });
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const gardenScale = 1.5; // meters
+
+  // Load each unique model
+  for (const idx of uniqueModels) {
+    const plant = PLANTS[idx];
+    statusText.textContent = `Loading ${plant.name}...`;
+    progressText.textContent = `${Object.keys(modelCache).length + 1}/${uniqueModels.length}`;
+
+    try {
+      const gltf = await new Promise((resolve, reject) => {
+        loader.load(
+          `${MODEL_BASE}/${plant.acr}_3d.glb`,
+          resolve,
+          (p) => {
+            if (p.total) progressText.textContent = `${plant.name}: ${Math.round(p.loaded/p.total*100)}%`;
+          },
+          reject
+        );
+      });
+      modelCache[idx] = gltf.scene;
+    } catch(err) {
+      console.error(`Failed: ${plant.name}`, err);
+    }
+  }
+
+  if (Object.keys(modelCache).length === 0) {
+    showError('Could not load 3D models.');
+    return;
+  }
+
+  // Place plants
+  statusText.textContent = 'Building garden...';
+  designPlants.forEach(dp => {
+    const plant = PLANTS[dp.idx];
+    if (!plant?.has3d || !modelCache[dp.idx]) return;
+
+    const model = modelCache[dp.idx].clone();
+    const relX = dp.relX ?? 0.5;
+    const relY = dp.relY ?? 0.5;
+
+    const posX = (relX - centerX) * gardenScale;
+    const posZ = (relY - centerY) * gardenScale;
+    const plantScale = (plant.size / 18) * 0.15;
+
+    model.scale.set(plantScale, plantScale, plantScale);
+    model.position.set(posX, 0, posZ);
+    gardenGroup.add(model);
+  });
+
+  // Setup preview renderer
+  const previewEl = document.getElementById('preview');
+  const width = previewEl.clientWidth || 350;
+  const height = previewEl.clientHeight || 300;
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  previewEl.innerHTML = '';
+  previewEl.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, width/height, 0.01, 100);
+  camera.position.set(gardenScale, gardenScale * 0.6, gardenScale * 1.2);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0.1, 0);
+  controls.enableDamping = true;
+  controls.maxPolarAngle = Math.PI / 2;
+  controls.update();
+
+  // Preview animation loop
+  function animate() {
+    if (!arSession) {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+  }
+  animate();
+
+  document.getElementById('controlsHint').style.display = 'block';
+  document.getElementById('arButton').style.display = 'block';
+  document.getElementById('loading').style.display = 'none';
+}
+
+function showError(msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'block';
+  document.getElementById('errorBox').textContent = msg;
+}
+
+init().catch(err => {
+  console.error(err);
+  showError('Error: ' + err.message);
+});
+</script>
+</body>
+</html>
