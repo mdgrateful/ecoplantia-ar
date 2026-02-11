@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ecoplantia AR Garden</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; overflow: hidden; touch-action: none; }
+
+    #cameraView { position: fixed; inset: 0; background: #111; }
+    #cameraVideo { width: 100%; height: 100%; object-fit: cover; }
+
+    #plantsOverlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .arPlant {
+      position: absolute;
+      pointer-events: auto;
+      touch-action: none;
+      cursor: grab;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+      transition: filter 0.2s, opacity 0.2s;
+      transform-origin: bottom center;
+    }
+
+    .arPlant.dragging { cursor: grabbing; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.6)); z-index: 1000 !important; }
+    .arPlant.selected {
+      outline: 3px solid #4CAF50;
+      outline-offset: 4px;
+      border-radius: 8px;
+    }
+    .arPlant.selected::after {
+      content: attr(data-name);
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+    .arPlant.all-selected { outline: 2px solid #2196F3; outline-offset: 2px; border-radius: 6px; }
+    .arPlant.locked {
+      pointer-events: none;
+      opacity: 0.95;
+    }
+    .arPlant.locked::before {
+      content: '🔒';
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      font-size: 14px;
+      background: rgba(255,152,0,0.9);
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .arPlant img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    /* Schematic plant circle mode */
+    .arPlant .plant-acronym,
+    .arPlant .plant-x { display: none; }
+    .arPlant.schematic {
+      background: rgba(255, 255, 255, 0.75);
+      border: 2px dashed #1B9E31;
+      border-radius: 50%;
+      filter: none;
+    }
+    .arPlant.schematic img { display: none; }
+    .arPlant.schematic .plant-acronym {
+      display: block;
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.18em;
+      font-weight: 400;
+      font-family: 'Arial Narrow', Arial, Helvetica, sans-serif;
+      color: #158526;
+      text-align: center;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .arPlant.schematic .plant-x {
+      display: block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.25em;
+      font-weight: 400;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #158526;
+      text-align: center;
+      line-height: 1;
+    }
+    .arPlant.schematic.selected { outline-color: #FFD700; }
+    .arPlant.schematic.locked::before { display: none; }
+
+
+    #topBar {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 12px 15px; padding-top: max(12px, env(safe-area-inset-top));
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      display: flex; justify-content: space-between; align-items: center; z-index: 10;
+    }
+    #topBar h3 { color: #fff; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 6px; }
+    .topBtn {
+      background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+      border: none; color: #fff; width: 40px; height: 40px;
+      border-radius: 50%; font-size: 20px; cursor: pointer;
+    }
+    .topBtn:active { background: rgba(255,255,255,0.4); }
+
+    #bottomControls {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 15px; padding-bottom: max(15px, env(safe-area-inset-bottom));
+      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+      z-index: 10;
+    }
+
+    /* Mode buttons row */
+    #modeRow {
+      display: flex; gap: 6px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap;
+    }
+    .modeBtn {
+      background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);
+      border: 2px solid transparent; color: #fff; padding: 8px 14px;
+      border-radius: 18px; font-size: 12px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .modeBtn.active { border-color: #4CAF50; background: rgba(76,175,80,0.4); }
+    .modeBtn.locked { border-color: #FF9800; background: rgba(255,152,0,0.4); color: #FFE082; }
+    .modeBtn.schematic-active { border-color: #1B9E31; background: rgba(27,158,49,0.5); }
+
+    #actionBtns { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .actionBtn {
+      background: rgba(255,255,255,0.2); backdrop-filter: blur(10px);
+      border: none; color: #fff; padding: 12px 16px; border-radius: 22px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .actionBtn:active { background: rgba(255,255,255,0.4); }
+    .actionBtn.primary { background: #4CAF50; }
+    .actionBtn.back { background: rgba(33,150,243,0.8); }
+    .actionBtn.danger { background: rgba(244,67,54,0.8); }
+
+    /* Plant controls - floating toolbar */
+    #plantControls {
+      position: fixed; bottom: 155px; left: 50%; transform: translateX(-50%);
+      display: none; gap: 6px; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+      padding: 10px 14px; border-radius: 25px; z-index: 10; align-items: center;
+      flex-wrap: wrap; justify-content: center; max-width: 95%;
+    }
+    #plantControls.vis { display: flex; }
+    .ctrlBtn {
+      background: rgba(255,255,255,0.2); border: none; color: #fff;
+      width: 38px; height: 38px; border-radius: 50%; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ctrlBtn:active { background: rgba(255,255,255,0.4); }
+    .ctrlBtn.danger { background: rgba(244,67,54,0.7); }
+    .ctrlBtn.active { background: rgba(76,175,80,0.6); border: 2px solid #4CAF50; }
+    .ctrlDivider { width: 1px; height: 28px; background: rgba(255,255,255,0.3); margin: 0 4px; }
+    #sizeLabel { color: #fff; font-size: 12px; min-width: 45px; text-align: center; font-weight: 600; }
+
+    #hint {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.85); color: #fff; padding: 10px 18px;
+      border-radius: 20px; font-size: 13px; z-index: 10;
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+      text-align: center; max-width: 90%;
+    }
+    #hint.show { opacity: 1; }
+
+    #permission {
+      position: fixed; inset: 0; background: linear-gradient(135deg, #1B5E20, #4CAF50);
+      display: flex; align-items: center; justify-content: center; z-index: 20;
+    }
+    #permission.hide { display: none; }
+    .permContent { text-align: center; padding: 30px; max-width: 320px; }
+    .permIcon { font-size: 60px; margin-bottom: 15px; }
+    .permContent h3 { color: #fff; font-size: 24px; margin: 0 0 10px; }
+    .permContent p { color: rgba(255,255,255,0.9); font-size: 14px; margin: 0 0 20px; line-height: 1.5; }
+    .plantCount { background: rgba(255,255,255,0.2); padding: 14px 20px; border-radius: 12px; margin-bottom: 20px; color: #fff; font-size: 16px; font-weight: 500; }
+    .startBtn {
+      background: #fff; color: #1B5E20; border: none; padding: 16px 35px;
+      border-radius: 25px; font-size: 16px; font-weight: 700; cursor: pointer;
+      margin-bottom: 12px; display: block; width: 100%;
+    }
+    .startBtn:active { background: #e0e0e0; }
+    .closePermBtn {
+      background: transparent; color: rgba(255,255,255,0.9);
+      border: 2px solid rgba(255,255,255,0.5); padding: 12px 25px;
+      border-radius: 22px; font-size: 14px; cursor: pointer; display: block; width: 100%;
+    }
+    #errorMsg { color: #ffcdd2; font-size: 12px; margin-top: 15px; }
+    #flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 100; transition: opacity 0.1s; }
+    #flash.flash { opacity: 1; }
+
+    /* Locked overlay indicator */
+    #lockedBanner {
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+      background: rgba(255,152,0,0.95); color: #fff; padding: 8px 20px;
+      border-radius: 20px; font-size: 13px; font-weight: 600; z-index: 15;
+      display: none; align-items: center; gap: 8px;
+    }
+    #lockedBanner.show { display: flex; }
+  </style>
+</head>
+<body>
+  <div id="permission">
+    <div class="permContent">
+      <div class="permIcon">🌿</div>
+      <h3>AR Billboard Garden</h3>
+      <p>Place your native plants in your actual yard using your camera!</p>
+      <div class="plantCount" id="plantCount">Loading plants...</div>
+      <button class="startBtn" id="startBtn">📷 Start Camera</button>
+      <button class="closePermBtn" id="closePermBtn">← Back to Designer</button>
+      <div id="errorMsg"></div>
+    </div>
+  </div>
+
+  <div id="cameraView"><video id="cameraVideo" autoplay playsinline muted></video></div>
+
+  <div id="plantsOverlay"></div>
+
+  <div id="lockedBanner">🔒 Plants Locked — Ready to Capture!</div>
+
+  <div id="plantControls">
+    <button class="ctrlBtn" id="shrinkBtn" title="Shrink">−</button>
+    <span id="sizeLabel">100%</span>
+    <button class="ctrlBtn" id="growBtn" title="Grow">+</button>
+    <div class="ctrlDivider"></div>
+    <button class="ctrlBtn" id="flipBtn" title="Flip">↔</button>
+    <button class="ctrlBtn" id="rotateLeftBtn" title="Rotate Left">↶</button>
+    <button class="ctrlBtn" id="rotateRightBtn" title="Rotate Right">↷</button>
+    <div class="ctrlDivider"></div>
+    <button class="ctrlBtn" id="frontBtn" title="Bring Forward">⬆</button>
+    <button class="ctrlBtn" id="backBtn3" title="Send Back">⬇</button>
+    <button class="ctrlBtn danger" id="deleteBtn" title="Delete">🗑</button>
+  </div>
+
+  <div id="hint"></div>
+
+  <div id="topBar" style="display:none">
+    <button class="topBtn" id="backBtn">←</button>
+    <h3><span>🌿</span> AR Billboard</h3>
+    <button class="topBtn" id="flipCamBtn">🔄</button>
+  </div>
+
+  <div id="bottomControls" style="display:none">
+    <div id="modeRow">
+      <button class="modeBtn active" id="singleModeBtn">🌱 Single</button>
+      <button class="modeBtn" id="allModeBtn">☑️ All</button>
+      <button class="modeBtn" id="schematicBtn">◎ Schematic</button>
+      <button class="modeBtn" id="lockModeBtn">🔓 Move</button>
+    </div>
+    <div id="actionBtns">
+      <button class="actionBtn back" id="backBtn2">← Back</button>
+      <button class="actionBtn danger" id="clearBtn">🗑</button>
+      <button class="actionBtn" id="resetBtn">↺ Reset</button>
+      <button class="actionBtn primary" id="captureBtn">📸 Capture</button>
+    </div>
+  </div>
+
+  <div id="flash"></div>
+
+  <script>
+    const PLANTS = [
+      { name: 'Lanceleaf Coreopsis', acr: 'COR', img: 'https://static.wixstatic.com/media/94bd1f_48d31eb0d72044c5a798b2fd8960256a~mv2.png' },
+      { name: 'Blazingstar', acr: 'LIA', img: 'https://static.wixstatic.com/media/94bd1f_b53a5d6e4fb042c585a424bea9356928~mv2.png' },
+      { name: 'Purple Lovegrass', acr: 'ERA', img: 'https://static.wixstatic.com/media/94bd1f_935a7b7f12d14b1c9d71cb3122f0c1c4~mv2.png' },
+      { name: 'Black-Eyed Susan', acr: 'RUD', img: 'https://static.wixstatic.com/media/94bd1f_e5d5fdb0948b4808afaf856a5020ff13~mv2.png' },
+      { name: 'Purple Coneflower', acr: 'ECH', img: 'https://static.wixstatic.com/media/94bd1f_229936c40de64ae18bf2640a08e1b58a~mv2.png' },
+      { name: 'Rough Goldenrod', acr: 'SOL', img: 'https://static.wixstatic.com/media/94bd1f_78ed4dc45454484f818e215a6b795305~mv2.png' },
+      { name: 'Smooth Aster', acr: 'AST', img: 'https://static.wixstatic.com/media/94bd1f_6390f6e095084528ac9eb4e7e8917f2a~mv2.png' },
+      { name: 'Blunt Mountain-Mint', acr: 'MMT', img: 'https://static.wixstatic.com/media/94bd1f_c877a7e1e24143ce91317966460be77b~mv2.png' },
+      { name: 'Butterfly Weed', acr: 'ASC', img: 'https://static.wixstatic.com/media/94bd1f_00213b64feff49f591a7fb83fd720fbb~mv2.png' }
+    ];
+
+    // Parse design plants from URL hash
+    let DESIGN_PLANTS = [];
+    let initialPositions = [];
+    try {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        DESIGN_PLANTS = JSON.parse(decodeURIComponent(hash));
+      }
+    } catch(e) { console.log('No design plants'); }
+
+    // Update plant count display
+    if (DESIGN_PLANTS.length > 0) {
+      document.getElementById('plantCount').innerHTML = `<strong>${DESIGN_PLANTS.length}</strong> plants from your design`;
+    } else {
+      document.getElementById('plantCount').textContent = 'No plants yet. Go back and design first!';
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('startBtn').style.opacity = '0.5';
+    }
+
+    const $ = id => document.getElementById(id);
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+    // State
+    let stream = null;
+    let facingMode = 'environment';
+    let selectedPlant = null;
+    let placedPlants = [];
+    let mode = 'single';
+    let isLocked = false;
+    let globalScale = 1;
+    let isSchematic = false;
+
+    // Close/back functions
+    function closeAR() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      if (window.opener) {
+        window.close();
+      } else {
+        history.back();
+        setTimeout(() => showHint('Close this tab to return', 3000), 200);
+      }
+    }
+
+    $('closePermBtn').onclick = closeAR;
+    $('backBtn').onclick = closeAR;
+    $('backBtn2').onclick = closeAR;
+
+    function showHint(msg, duration = 2500) {
+      $('hint').textContent = msg;
+      $('hint').classList.add('show');
+      setTimeout(() => $('hint').classList.remove('show'), duration);
+    }
+
+    // Start camera
+    $('startBtn').onclick = startCamera;
+    async function startCamera() {
+      try {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        });
+        $('cameraVideo').srcObject = stream;
+        $('permission').classList.add('hide');
+        $('topBar').style.display = 'flex';
+        $('bottomControls').style.display = 'block';
+
+        setTimeout(placeDesignPlants, 400);
+      } catch (e) {
+        console.error('Camera error:', e);
+        $('errorMsg').textContent = 'Camera access denied. Please allow camera in your browser settings.';
+      }
+    }
+
+    // Place billboard plants from design
+    function placeDesignPlants() {
+      if (!DESIGN_PLANTS.length) {
+        showHint('No plants to display', 3000);
+        return;
+      }
+
+      const w = innerWidth, h = innerHeight;
+      const groundLevel = h * 0.80;
+      const moundHeight = h * 0.18;
+      const gardenLeft = w * 0.06;
+      const gardenWidth = w * 0.88;
+
+      // Sort by Y (back to front for proper layering)
+      const sorted = [...DESIGN_PLANTS].sort((a, b) => a.relY - b.relY);
+
+      sorted.forEach((dp, index) => {
+        const plant = PLANTS[dp.idx];
+        if (!plant) return;
+
+        const rY = clamp(dp.relY, 0, 1);
+        const yBase = groundLevel - moundHeight + (rY * moundHeight);
+
+        // Larger base size for better visibility
+        const baseSize = 60 + rY * 35;
+        const x = gardenLeft + (dp.relX * gardenWidth);
+        const y = yBase - baseSize;
+        const zIndex = Math.floor(rY * 100) + 10;
+
+        createPlant(plant, x - baseSize/2, y, baseSize, zIndex);
+      });
+
+      // Store initial positions for reset
+      initialPositions = placedPlants.map(p => ({
+        left: p.style.left,
+        top: p.style.top,
+        width: p.style.width,
+        height: p.style.height,
+        transform: p.style.transform,
+        zIndex: p.style.zIndex,
+        scale: p.dataset.scale,
+        rotation: p.dataset.rotation,
+        flipX: p.dataset.flipX
+      }));
+
+      showHint('Drag plants to position • Tap to select • Pinch to resize', 4000);
+    }
+
+    function createPlant(plantData, x, y, size, zIndex) {
+      const el = document.createElement('div');
+      el.className = 'arPlant';
+      el.dataset.name = plantData.name;
+      el.dataset.scale = 1;
+      el.dataset.rotation = 0;
+      el.dataset.flipX = 'false';
+      el.dataset.baseSize = size;
+      el.dataset.acr = plantData.acr;
+      el.style.cssText = `width:${size}px; height:${size}px; left:${x}px; top:${y}px; z-index:${zIndex}; font-size:${size}px;`;
+      el.innerHTML = `<img src="${plantData.img}" crossorigin="anonymous"><span class="plant-acronym">${plantData.acr}</span><span class="plant-x">×</span>`;
+      if (isSchematic) el.classList.add('schematic');
+      $('plantsOverlay').appendChild(el);
+      makeDraggable(el);
+      placedPlants.push(el);
+      return el;
+    }
+
+    // Flip camera
+    $('flipCamBtn').onclick = async () => {
+      facingMode = facingMode === 'environment' ? 'user' : 'environment';
+      await startCamera();
+      showHint(facingMode === 'environment' ? 'Back camera' : 'Selfie camera');
+    };
+
+    // Tap overlay to deselect
+    $('plantsOverlay').onclick = (e) => {
+      if (e.target === $('plantsOverlay')) deselectAll();
+    };
+
+    function makeDraggable(el) {
+      let sx, sy, ox, oy, drag = false, moved = false;
+
+      el.onpointerdown = e => {
+        if (isLocked) {
+          showHint('Unlock to move plants');
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        drag = true;
+        moved = false;
+        el.classList.add('dragging');
+        el.setPointerCapture(e.pointerId);
+        sx = e.clientX; sy = e.clientY;
+        ox = parseFloat(el.style.left); oy = parseFloat(el.style.top);
+
+        if (mode === 'all') {
+          placedPlants.forEach(p => {
+            p.dataset.startX = parseFloat(p.style.left);
+            p.dataset.startY = parseFloat(p.style.top);
+          });
+        }
+      };
+
+      el.onpointermove = e => {
+        if (!drag) return;
+        const dx = e.clientX - sx, dy = e.clientY - sy;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+
+        if (mode === 'all') {
+          placedPlants.forEach(p => {
+            p.style.left = (parseFloat(p.dataset.startX) + dx) + 'px';
+            p.style.top = (parseFloat(p.dataset.startY) + dy) + 'px';
+          });
+        } else {
+          el.style.left = (ox + dx) + 'px';
+          el.style.top = (oy + dy) + 'px';
+        }
+      };
+
+      el.onpointerup = e => {
+        drag = false;
+        el.classList.remove('dragging');
+        el.releasePointerCapture(e.pointerId);
+        if (!moved && !isLocked) selectPlant(el);
+      };
+    }
+
+    function selectPlant(el) {
+      if (mode === 'all') {
+        placedPlants.forEach(p => p.classList.add('all-selected'));
+        selectedPlant = el;
+      } else {
+        if (selectedPlant) selectedPlant.classList.remove('selected');
+        placedPlants.forEach(p => p.classList.remove('all-selected'));
+        selectedPlant = el;
+        el.classList.add('selected');
+      }
+      updateSizeLabel();
+      $('plantControls').classList.add('vis');
+    }
+
+    function deselectAll() {
+      if (selectedPlant) selectedPlant.classList.remove('selected');
+      placedPlants.forEach(p => p.classList.remove('all-selected'));
+      selectedPlant = null;
+      $('plantControls').classList.remove('vis');
+    }
+
+    function updateSizeLabel() {
+      if (mode === 'all') {
+        $('sizeLabel').textContent = Math.round(globalScale * 100) + '%';
+      } else if (selectedPlant) {
+        $('sizeLabel').textContent = Math.round((parseFloat(selectedPlant.dataset.scale) || 1) * 100) + '%';
+      }
+    }
+
+    function updateTransform(el) {
+      const flipX = el.dataset.flipX === 'true' ? -1 : 1;
+      const rotation = parseFloat(el.dataset.rotation) || 0;
+      el.style.transform = `scaleX(${flipX}) rotate(${rotation}deg)`;
+    }
+
+    // Mode buttons
+    $('singleModeBtn').onclick = () => setMode('single');
+    $('allModeBtn').onclick = () => setMode('all');
+    $('lockModeBtn').onclick = toggleLock;
+    $('schematicBtn').onclick = toggleSchematic;
+
+    function setMode(newMode) {
+      mode = newMode;
+      deselectAll();
+      $('singleModeBtn').classList.toggle('active', newMode === 'single');
+      $('allModeBtn').classList.toggle('active', newMode === 'all');
+
+      if (newMode === 'all') {
+        placedPlants.forEach(p => p.classList.add('all-selected'));
+        if (placedPlants.length) {
+          selectedPlant = placedPlants[0];
+          $('plantControls').classList.add('vis');
+          updateSizeLabel();
+        }
+        showHint('Drag to move all plants together');
+      } else {
+        showHint('Tap a plant to select and edit');
+      }
+    }
+
+    function toggleLock() {
+      isLocked = !isLocked;
+      $('lockModeBtn').classList.toggle('locked', isLocked);
+      $('lockModeBtn').innerHTML = isLocked ? '🔒 Locked' : '🔓 Move';
+      $('lockedBanner').classList.toggle('show', isLocked);
+      placedPlants.forEach(p => p.classList.toggle('locked', isLocked));
+
+      if (isLocked) {
+        deselectAll();
+        showHint('Plants locked! Position your camera and capture.', 3000);
+      } else {
+        showHint('Plants unlocked - you can move them again');
+      }
+    }
+
+    function toggleSchematic() {
+      isSchematic = !isSchematic;
+      $('schematicBtn').classList.toggle('schematic-active', isSchematic);
+      placedPlants.forEach(p => p.classList.toggle('schematic', isSchematic));
+
+      if (isSchematic) {
+        showHint('Schematic view — see plant positions as circles', 3000);
+      } else {
+        showHint('Billboard view — realistic plant images');
+      }
+    }
+
+    // Plant controls
+    $('growBtn').onclick = () => resizePlants(1.12);
+    $('shrinkBtn').onclick = () => resizePlants(0.88);
+
+    function resizePlants(factor) {
+      if (isLocked) return;
+      if (mode === 'all') {
+        globalScale = clamp(globalScale * factor, 0.3, 3);
+        placedPlants.forEach(el => applyScale(el, clamp((parseFloat(el.dataset.scale) || 1) * factor, 0.3, 3)));
+      } else if (selectedPlant) {
+        applyScale(selectedPlant, clamp((parseFloat(selectedPlant.dataset.scale) || 1) * factor, 0.3, 3));
+      }
+      updateSizeLabel();
+    }
+
+    function applyScale(el, newScale) {
+      const baseSize = parseFloat(el.dataset.baseSize) || 70;
+      const newSize = baseSize * newScale;
+      const oldSize = parseFloat(el.style.width);
+      const oldLeft = parseFloat(el.style.left);
+      const oldBottom = parseFloat(el.style.top) + oldSize;
+
+      el.dataset.scale = newScale;
+      el.style.width = newSize + 'px';
+      el.style.height = newSize + 'px';
+      el.style.fontSize = newSize + 'px';
+      el.style.left = (oldLeft + (oldSize - newSize) / 2) + 'px';
+      el.style.top = (oldBottom - newSize) + 'px';
+    }
+
+    $('flipBtn').onclick = () => {
+      if (isLocked) return;
+      const targets = mode === 'all' ? placedPlants : (selectedPlant ? [selectedPlant] : []);
+      targets.forEach(el => {
+        el.dataset.flipX = el.dataset.flipX === 'true' ? 'false' : 'true';
+        updateTransform(el);
+      });
+    };
+
+    $('rotateLeftBtn').onclick = () => rotatePlants(-15);
+    $('rotateRightBtn').onclick = () => rotatePlants(15);
+
+    function rotatePlants(degrees) {
+      if (isLocked) return;
+      const targets = mode === 'all' ? placedPlants : (selectedPlant ? [selectedPlant] : []);
+      targets.forEach(el => {
+        el.dataset.rotation = (parseFloat(el.dataset.rotation) || 0) + degrees;
+        updateTransform(el);
+      });
+    }
+
+    $('frontBtn').onclick = () => {
+      if (isLocked || !selectedPlant) return;
+      const maxZ = Math.max(...placedPlants.map(p => parseInt(p.style.zIndex) || 0));
+      selectedPlant.style.zIndex = maxZ + 1;
+      showHint('Brought to front');
+    };
+
+    $('backBtn3').onclick = () => {
+      if (isLocked || !selectedPlant) return;
+      const minZ = Math.min(...placedPlants.map(p => parseInt(p.style.zIndex) || 0));
+      selectedPlant.style.zIndex = Math.max(1, minZ - 1);
+      showHint('Sent to back');
+    };
+
+    $('deleteBtn').onclick = () => {
+      if (isLocked) return;
+      if (mode === 'all') {
+        if (confirm('Delete all plants?')) {
+          placedPlants.forEach(p => p.remove());
+          placedPlants = [];
+          deselectAll();
+        }
+      } else if (selectedPlant) {
+        selectedPlant.remove();
+        placedPlants = placedPlants.filter(p => p !== selectedPlant);
+        deselectAll();
+        showHint('Deleted');
+      }
+    };
+
+    $('clearBtn').onclick = () => {
+      if (!placedPlants.length) return;
+      if (confirm('Clear all plants?')) {
+        placedPlants.forEach(p => p.remove());
+        placedPlants = [];
+        deselectAll();
+        globalScale = 1;
+        if (isLocked) toggleLock();
+        showHint('Cleared');
+      }
+    };
+
+    $('resetBtn').onclick = () => {
+      if (!initialPositions.length) return;
+      placedPlants.forEach((p, i) => {
+        const init = initialPositions[i];
+        if (init) {
+          p.style.left = init.left;
+          p.style.top = init.top;
+          p.style.width = init.width;
+          p.style.height = init.height;
+          p.style.zIndex = init.zIndex;
+          p.dataset.scale = init.scale;
+          p.dataset.rotation = init.rotation || 0;
+          p.dataset.flipX = init.flipX || 'false';
+          updateTransform(p);
+        }
+      });
+      globalScale = 1;
+      if (isLocked) toggleLock();
+      deselectAll();
+      showHint('Reset to original positions');
+    };
+
+    // Capture
+    $('captureBtn').onclick = async () => {
+      deselectAll();
+      $('lockedBanner').classList.remove('show');
+      $('flash').classList.add('flash');
+      setTimeout(() => $('flash').classList.remove('flash'), 150);
+
+      try {
+        const v = $('cameraVideo');
+        const c = document.createElement('canvas');
+        c.width = v.videoWidth || 1920;
+        c.height = v.videoHeight || 1080;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(v, 0, 0, c.width, c.height);
+
+        const sx = c.width / innerWidth, sy = c.height / innerHeight;
+
+        const sortedPlants = [...placedPlants].sort((a, b) =>
+          (parseInt(a.style.zIndex) || 0) - (parseInt(b.style.zIndex) || 0)
+        );
+
+        for (const p of sortedPlants) {
+          const r = p.getBoundingClientRect();
+          const flipX = p.dataset.flipX === 'true';
+          const rotation = parseFloat(p.dataset.rotation) || 0;
+
+          await new Promise(res => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+              ctx.save();
+              const cx = (r.left + r.width/2) * sx;
+              const cy = (r.top + r.height/2) * sy;
+              ctx.translate(cx, cy);
+              if (flipX) ctx.scale(-1, 1);
+              ctx.rotate(rotation * Math.PI / 180);
+              ctx.drawImage(img, -r.width*sx/2, -r.height*sy/2, r.width*sx, r.height*sy);
+              ctx.restore();
+              res();
+            };
+            img.onerror = res;
+            img.src = p.querySelector('img').src;
+          });
+        }
+
+        const a = document.createElement('a');
+        a.download = 'ecoplantia-ar-' + Date.now() + '.png';
+        a.href = c.toDataURL('image/png', 0.95);
+        a.click();
+        showHint('Photo saved! 📸', 2500);
+
+        if (isLocked) $('lockedBanner').classList.add('show');
+      } catch (e) {
+        console.error('Capture error:', e);
+        showHint('Capture failed - try again');
+      }
+    };
+
+    // Pinch-to-zoom for touch devices
+    let lastTouchDist = 0;
+    $('plantsOverlay').addEventListener('touchstart', e => {
+      if (e.touches.length === 2 && !isLocked) {
+        lastTouchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    }, { passive: true });
+
+    $('plantsOverlay').addEventListener('touchmove', e => {
+      if (e.touches.length === 2 && lastTouchDist && !isLocked) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const scale = dist / lastTouchDist;
+        if (scale > 1.03) {
+          resizePlants(1.04);
+          lastTouchDist = dist;
+        } else if (scale < 0.97) {
+          resizePlants(0.96);
+          lastTouchDist = dist;
+        }
+      }
+    }, { passive: true });
+
+    $('plantsOverlay').addEventListener('touchend', () => { lastTouchDist = 0; });
+  </script>
+</body>
+</html>
